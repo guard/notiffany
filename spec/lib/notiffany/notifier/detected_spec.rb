@@ -3,7 +3,9 @@ require "notiffany/notifier/detected"
 module Notiffany
   class Notifier
     RSpec.describe(Detected, exclude_stubs: [YamlEnvStorage]) do
-      subject { described_class.new(supported, "notiffany_tests") }
+      let(:logger) { double("Logger", debug: nil) }
+
+      subject { described_class.new(supported, "notiffany_tests", logger) }
 
       let(:env) { instance_double(YamlEnvStorage) }
 
@@ -73,11 +75,10 @@ module Notiffany
 
             allow(foo_mod).to receive(:new).and_return(foo_obj)
             allow(baz_mod).to receive(:new).
-              and_raise(Notifier::Base::UnavailableError)
+              and_raise(Notifier::Base::UnavailableError, "some failure")
           end
 
-          # TODO: should silent be really passed?
-          let(:detected) { [{ name: :foo, options: { silent: true } }] }
+          let(:detected) { [{ name: :foo, options: {} }] }
 
           it "add detected notifiers to available" do
             expect(env).to receive(:notifiers=) do |args|
@@ -94,9 +95,9 @@ module Notiffany
             allow(env).to receive(:notifiers).and_return([])
 
             allow(foo_mod).to receive(:new).
-              and_raise(Notifier::Base::UnavailableError)
+              and_raise(Notifier::Base::UnavailableError, "some error")
             allow(baz_mod).to receive(:new).
-              and_raise(Notifier::Base::UnavailableError)
+              and_raise(Notifier::Base::UnavailableError, "some error")
           end
 
           let(:error) { described_class::NoneAvailableError }

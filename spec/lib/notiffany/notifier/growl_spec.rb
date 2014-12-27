@@ -4,10 +4,9 @@ module Notiffany
   RSpec.describe Notifier::Growl do
     let(:growl) { double("Growl", installed?: true) }
 
-    let(:ui) { double("UI") }
     let(:options) { {} }
     let(:os) { "solaris" }
-    subject { described_class.new(ui, options) }
+    subject { described_class.new(options) }
 
     before do
       allow(Kernel).to receive(:require)

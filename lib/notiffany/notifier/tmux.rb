@@ -180,8 +180,13 @@ module Notiffany
 
       private
 
+      def _gem_name
+        nil
+      end
+
       def _check_available(opts = {})
-        fail "PREVIOUS TMUX SESSION NOT CLEARED!" if @session || nil
+        @session ||= nil # to avoid unitialized error
+        fail "PREVIOUS TMUX SESSION NOT CLEARED!" if @session
 
         var_name = opts[:tmux_environment]
         fail Error, ERROR_NOT_INSIDE_TMUX unless ENV.key?(var_name)

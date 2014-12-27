@@ -3,10 +3,9 @@ require "notiffany/notifier/notifysend"
 module Notiffany
   class Notifier
     RSpec.describe NotifySend do
-      let(:ui) { double("ui") }
       let(:options) { {} }
       let(:os) { "solaris" }
-      subject { described_class.new(ui, options) }
+      subject { described_class.new(options) }
 
       let(:sheller) { class_double("Shellany::Sheller") }
 

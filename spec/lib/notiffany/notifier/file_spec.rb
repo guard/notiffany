@@ -2,9 +2,8 @@ require "notiffany/notifier/file"
 
 module Notiffany
   RSpec.describe Notifier::File do
-    let(:ui) { double("UI") }
     let(:options) { {} }
-    subject { described_class.new(ui, options) }
+    subject { described_class.new(options) }
 
     describe "#available" do
       context "with path option" do
@@ -66,10 +65,9 @@ module Notiffany
       # specified. So, we just don't do anything in .notify if there's no path.
       it "does not write to a file if no path is specified" do
         expect(File).to_not receive(:write)
-        expect(ui).to receive(:error).
-          with ":file notifier requires a :path option"
 
-        subject.notify("any message", path: nil)
+        expect { subject.notify("any message", path: nil) }.
+          to raise_error(Notifier::Base::UnavailableError)
       end
     end
   end

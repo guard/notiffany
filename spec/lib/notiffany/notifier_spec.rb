@@ -37,7 +37,8 @@ module Notiffany
       allow(env).to receive(:notify_pid=).with($$)
 
       allow(described_class::Detected).to receive(:new).
-        with(described_class::SUPPORTED).and_return(detected)
+        with(described_class::SUPPORTED, 'notiffany', logger).
+        and_return(detected)
 
       allow(detected).to receive(:add)
       allow(detected).to receive(:reset)
@@ -103,6 +104,90 @@ module Notiffany
 
       context "when disabled with environment" do
         let(:env_enabled) { false }
+        pending
+      end
+
+      context "with custom notifier config" do
+        let(:env_enabled) { true }
+        let(:notifiers) { {foo: { bar: :baz} } }
+        let(:options) { { notifiers: notifiers} }
+
+        before do
+          allow(detected).to receive(:available).and_return([])
+          allow(env).to receive(:notify?).and_return(enabled)
+        end
+
+        context "when child process" do
+          let(:enabled) { true }
+          before { allow(env).to receive(:notify_pid).and_return($$ + 100) }
+          it "works" do
+            subject
+          end
+        end
+
+        context "when not connected" do
+          context "when disabled" do
+            let(:enabled) { false }
+
+            it "does not add anything" do
+              expect(detected).to_not receive(:add)
+              subject
+            end
+          end
+
+          context "when enabled" do
+            let(:enabled) { true }
+
+            context "when supported" do
+              let(:name) { foo }
+
+              context "when available" do
+                it "adds the notifier to the notifications" do
+                  expect(detected).to receive(:add).with(:foo, bar: :baz)
+                  subject
+                end
+              end
+            end
+          end
+        end
+
+        context "when connected" do
+          before do
+            allow(env).to receive(:notify?).and_return(enabled)
+          end
+
+          context "when disabled" do
+            let(:enabled) { false }
+
+            it "does not add anything" do
+              expect(detected).to_not receive(:add)
+              subject
+            end
+          end
+
+          context "when enabled" do
+            let(:enabled) { true }
+
+            context "when :off" do
+              let(:notifiers) { { off: {} } }
+              it "turns off the notifier" do
+                expect(subject).to_not be_active
+              end
+            end
+
+            context "when supported" do
+              let(:name) { foo }
+
+              context "when available" do
+                it "adds the notifier to the notifications" do
+                  expect(detected).to receive(:add).
+                    with(:foo, bar: :baz)
+                  subject
+                end
+              end
+            end
+          end
+        end
       end
     end
 
@@ -217,85 +302,6 @@ module Notiffany
       context "when disabled" do
         let(:enabled) { false }
         it { is_expected.not_to be_enabled }
-      end
-    end
-
-    describe ".add" do
-      before do
-        allow(detected).to receive(:available).and_return([])
-        allow(env).to receive(:notify?).and_return(enabled)
-      end
-
-      context "when child process" do
-        let(:enabled) { true }
-        before { allow(env).to receive(:notify_pid).and_return($$ + 100) }
-        it { expect { subject.add(:foo) }.to raise_error(/Only notify()/) }
-      end
-
-      context "when not connected" do
-        context "when disabled" do
-          let(:enabled) { false }
-
-          it "does not add anything" do
-            expect(detected).to_not receive(:add)
-            subject.add(:foo)
-          end
-        end
-
-        context "when enabled" do
-          let(:enabled) { true }
-
-          context "when supported" do
-            let(:name) { foo }
-
-            context "when available" do
-              it "adds the notifier to the notifications" do
-                expect(detected).to receive(:add).with(:foo, param: 1)
-                subject.add(:foo, param: 1)
-              end
-            end
-          end
-        end
-      end
-
-      context "when connected" do
-        before do
-          allow(env).to receive(:notify?).and_return(enabled)
-          subject
-        end
-
-        context "when disabled" do
-          let(:enabled) { false }
-
-          it "does not add anything" do
-            expect(detected).to_not receive(:add)
-            subject.add(:foo)
-          end
-        end
-
-        context "when enabled" do
-          let(:enabled) { true }
-
-          context "when :off" do
-            it "turns off the notifier" do
-              subject.add(:off)
-              expect(subject).to_not be_active
-            end
-          end
-
-          context "when supported" do
-            let(:name) { foo }
-
-            context "when available" do
-              it "adds the notifier to the notifications" do
-                expect(detected).to receive(:add).
-                  with(:foo, param: 1)
-
-                subject.add(:foo, param: 1)
-              end
-            end
-          end
-        end
       end
     end
 

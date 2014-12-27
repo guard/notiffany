@@ -25,7 +25,8 @@ module Notiffany
       end
 
       def _check_available(_opts = {})
-        fail ERROR_ONLY_OSX10 unless ::TerminalNotifier::Guard.available?
+        return if ::TerminalNotifier::Guard.available?
+        fail UnavailableError, ERROR_ONLY_OSX10
       end
 
       # Shows a system notification.

@@ -3,12 +3,11 @@ require "notiffany/notifier/base"
 # TODO: no point in testing the base class, really
 module Notiffany
   RSpec.describe Notifier::Base do
-    let(:ui) { double("UI") }
     let(:fake) { double ("fake_lib") }
     let(:options) { {} }
     let(:os) { "solaris" }
 
-    subject { Notifier::FooBar.new(ui, { fake: fake }.merge(options)) }
+    subject { Notifier::FooBar.new({ fake: fake }.merge(options)) }
 
     before do
       allow(Kernel).to receive(:require)
@@ -57,7 +56,6 @@ module Notiffany
           before do
             allow(Kernel).to receive(:require).with("foo_bar").
               and_raise LoadError
-            allow(ui).to receive(:error)
           end
 
           it "fails with error" do

@@ -2,10 +2,9 @@ require "notiffany/notifier/libnotify"
 
 module Notiffany
   RSpec.describe Notifier::Libnotify do
-    let(:ui) { double("ui") }
     let(:options) { {} }
     let(:os) { "solaris" }
-    subject { described_class.new(ui, options) }
+    subject { described_class.new(options) }
 
     before do
       stub_const "Libnotify", double

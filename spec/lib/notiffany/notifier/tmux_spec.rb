@@ -112,11 +112,10 @@ module Notiffany
     RSpec.describe Tmux do
       let(:tmux_version) { 1.7 }
 
-      let(:ui) { double("ui") }
       let(:options) { {} }
       let(:os) { "solaris" }
       let(:tmux_env) { true }
-      subject { described_class.new(ui, options) }
+      subject { described_class.new(options) }
       let(:version) { 1.7 }
 
       let(:client) { instance_double(Tmux::Client) }

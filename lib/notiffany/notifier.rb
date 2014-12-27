@@ -85,7 +85,8 @@ module Notiffany
         Logger.new($stderr).tap { |l| l.level = Logger::WARN }
       end
 
-      @detected = Detected.new(SUPPORTED)
+
+      @detected = Detected.new(SUPPORTED, @env_namespace, @logger)
       return if _client?
 
       _env.notify_pid = $$
@@ -95,7 +96,14 @@ module Notiffany
       options = DEFAULTS.merge(opts)
       return unless enabled? && options[:notify]
 
-      @detected.detect
+      notifiers = opts.fetch(:notifiers, {})
+      if notifiers.any?
+        notifiers.each do |name, notifier_options|
+          @detected.add(name, notifier_options)
+        end
+      else
+        @detected.detect
+      end
 
       turn_on
     rescue Detected::NoneAvailableError => e
@@ -156,27 +164,6 @@ module Notiffany
     # Test if notifiers are currently turned on
     def active?
       _env.notify_active?
-    end
-
-    # Add a notification library to be used.
-    #
-    # @param [Symbol] name the name of the notifier to use
-    # @param [Hash] options the notifier options
-    # @option options [String] silent disable any error message
-    # @return [Boolean] if the notification could be added
-    #
-    def add(name, options = {})
-      _check_server!
-
-      return false unless enabled?
-
-      if name == :off && active?
-        turn_off
-        return false
-      end
-
-      # ok to pass new instance when called without connect (e.g. evaluator)
-      (@detected || Detected.new(SUPPORTED)).add(name, options)
     end
 
     # Show a system notification with all configured notifiers.

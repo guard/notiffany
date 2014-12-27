@@ -15,13 +15,40 @@ module Notiffany
         fontcolor: "White",
       }
 
+      class Client
+        def initialize(options)
+          @client = options[:client]
+        end
+
+        def available?
+          emacs_eval("'1'")
+        end
+
+        def notify(color, bgcolor)
+          elisp = <<-EOF.gsub(/\s+/, " ").strip
+            (set-face-attribute 'mode-line nil
+                 :background "#{bgcolor}"
+                 :foreground "#{color}")
+          EOF
+          emacs_eval(elisp)
+        end
+
+        private
+
+        def emacs_eval(code)
+          Shellany::Sheller.run(@client, "--eval", code)
+        end
+      end
+
       private
 
+      def _gem_name
+        nil
+      end
+
       def _check_available(options)
-        cmd = "#{options[:client]} --eval '1' 2> #{IO::NULL} || echo 'N/A'"
-        stdout = Shellany::Sheller.stdout(cmd)
-        fail UnavailableError if stdout.nil?
-        fail UnavailableError if %w(N/A 'N/A').include?(stdout.chomp)
+        return if Client.new(options).available?
+        fail UnavailableError, "Emacs client failed"
       end
 
       # Shows a system notification.
@@ -48,13 +75,7 @@ module Notiffany
       def _perform_notify(_message, opts = {})
         color     = _emacs_color(opts[:type], opts)
         fontcolor = _emacs_color(:fontcolor, opts)
-        elisp = <<-EOF.gsub(/\s+/, " ").strip
-          (set-face-attribute 'mode-line nil
-               :background "#{color}"
-               :foreground "#{fontcolor}")
-        EOF
-
-        _run_cmd(opts[:client], "--eval", elisp)
+        Client.new(opts).notify(fontcolor, color)
       end
 
       # Get the Emacs color for the notification type.
@@ -80,14 +101,6 @@ module Notiffany
       def _emacs_color(type, options = {})
         default = options.fetch(:default, DEFAULTS[:default])
         options.fetch(type.to_sym, default)
-      end
-
-      def _run_cmd(cmd, *args)
-        Shellany::Sheller.run(cmd, *args)
-      end
-
-      def _gem_name
-        nil
       end
     end
   end

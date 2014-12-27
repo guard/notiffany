@@ -65,18 +65,6 @@ module Notiffany
 
       private
 
-      def _register!(gntp_client)
-        gntp_client.register(
-          app_icon: _image_path(:guard),
-          notifications: [
-            { name: "notify", enabled: true },
-            { name: "failed", enabled: true },
-            { name: "pending", enabled: true },
-            { name: "success", enabled: true }
-          ]
-        )
-      end
-
       def _gntp_client(opts = {})
         @_client ||= begin
           gntp = ::GNTP.new(
@@ -85,7 +73,16 @@ module Notiffany
             opts.fetch(:password) { CLIENT_DEFAULTS[:password] },
             opts.fetch(:port) { CLIENT_DEFAULTS[:port] }
           )
-          _register!(gntp)
+
+          gntp.register(
+            app_icon: _image_path(:guard),
+            notifications: [
+              { name: "notify", enabled: true },
+              { name: "failed", enabled: true },
+              { name: "pending", enabled: true },
+              { name: "success", enabled: true }
+            ]
+          )
           gntp
         end
       end

@@ -29,9 +29,7 @@ module Notiffany
       def _check_available(_opts = {})
         return true unless Shellany::Sheller.stdout("which notify-send").empty?
 
-        fail UnsupportedPlatform, "The :notifysend notifier runs only on Linux"\
-            ", FreeBSD, OpenBSD and Solaris with the libnotify-bin "\
-            "package installed."
+        fail UnavailableError, "libnotify-bin package is not installed"
       end
 
       # Shows a system notification.

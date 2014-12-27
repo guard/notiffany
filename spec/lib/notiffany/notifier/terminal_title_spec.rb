@@ -1,10 +1,9 @@
 require "notiffany/notifier/terminal_title"
 
 RSpec.describe Notiffany::Notifier::TerminalTitle do
-  let(:ui) { double("ui") }
   let(:options) { { title: "Hello" } }
   let(:os) { "solaris" }
-  subject { described_class.new(ui, options) }
+  subject { described_class.new(options) }
 
   before do
     allow(Kernel).to receive(:require)

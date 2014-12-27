@@ -31,11 +31,24 @@ module Notiffany
       end
 
       class UnknownNotifier < RuntimeError
+        def initialize(name)
+          super
+          @name = name
+        end
+
+        def name
+          @name
+        end
+
+        def message
+          "Unknown notifier: #{@name.inspect}"
+        end
       end
 
-      def initialize(supported, env_namespace)
+      def initialize(supported, env_namespace, logger)
         @supported = supported
         @environment = YamlEnvStorage.new(env_namespace)
+        @logger = logger
       end
 
       def reset
@@ -47,11 +60,10 @@ module Notiffany
         @supported.each do |group|
           group.detect do |name, _|
             begin
-              add(name, silent: true)
+              add(name, {})
               true
-            rescue Notifier::Base::UnavailableError,
-                   Notifier::Base::UnsupportedPlatform,
-                   Notifier::Base::RequireFailed
+            rescue Notifier::Base::UnavailableError => e
+              @logger.debug "Notiffany: #{name} not available (#{e.message})."
               false
             end
           end
@@ -74,7 +86,7 @@ module Notiffany
         # we'd have to do :turn_off, then configure, then :turn_on
         names = all.map(&:first).map(&:last)
         unless names.include?(name)
-          fail UnknownNotifier unless (klass = _to_module(name))
+          fail UnknownNotifier, name unless (klass = _to_module(name))
 
           klass.new(opts) # raises if unavailable
           @environment.notifiers = all << { name: name, options: opts }

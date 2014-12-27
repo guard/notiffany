@@ -18,16 +18,32 @@ module Notiffany
       ERROR_ADD_GEM_AND_RUN_BUNDLE = "Please add \"gem '%s'\" to your Gemfile "\
         "and run your app with \"bundle exec\"."
 
-      class RequireFailed < RuntimeError
+      class UnavailableError < RuntimeError
+        def initialize(reason)
+          super
+          @reason = reason
+        end
+
+        def message
+          @reason
+        end
       end
 
-      class UnavailableError < RuntimeError
+      class RequireFailed < UnavailableError
+        def initialize(gem_name)
+          super ERROR_ADD_GEM_AND_RUN_BUNDLE % gem_name
+        end
       end
 
       class UnsupportedPlatform < UnavailableError
+        def initialize
+          super "Unsupported platform #{RbConfig::CONFIG["host_os"].inspect}"
+        end
       end
 
-      def initialize(ui, opts = {})
+      attr_reader :options
+
+      def initialize(opts = {})
         options = opts.dup
         options.delete(:silent)
         @options =
@@ -35,7 +51,6 @@ module Notiffany
           merge(self.class.const_get(:DEFAULTS)).
           merge(options).freeze
 
-        @ui = ui
         @images_path = Pathname.new(__FILE__).dirname + "../../../images"
 
         _check_host_supported
@@ -98,7 +113,7 @@ module Notiffany
       def _check_host_supported
         return if _supported_hosts == :all
         expr = /#{_supported_hosts * '|'}/
-        fail UnsupportedPlatform, name unless RbConfig::CONFIG["host_os"][expr]
+        fail UnsupportedPlatform unless expr.match(RbConfig::CONFIG["host_os"])
       end
 
       def _require_gem

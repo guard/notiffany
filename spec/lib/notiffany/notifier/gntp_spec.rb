@@ -4,10 +4,9 @@ module Notiffany
   RSpec.describe Notifier::GNTP do
     let(:gntp) { double("GNTP").as_null_object }
 
-    let(:ui) { double("UI") }
     let(:options) { {} }
     let(:os) { "solaris" }
-    subject { described_class.new(ui, options) }
+    subject { described_class.new(options) }
 
     before do
       stub_const "GNTP", gntp

@@ -14,7 +14,7 @@ module Notiffany
       #   message will be written
       #
       def _check_available(opts = {})
-        fail Base::UnsupportedPlatform unless opts.key?(:path)
+        fail UnavailableError, "No :path option given" unless opts[:path]
       end
 
       # Writes the notification to a file. By default it writes type, title,
@@ -30,10 +30,7 @@ module Notiffany
       # @option opts [String] path the path of where to write the file
       #
       def _perform_notify(message, opts = {})
-        unless opts[:path]
-          @ui.error ":file notifier requires a :path option"
-          return
-        end
+        fail UnavailableError, "No :path option given" unless opts[:path]
 
         format = opts[:format]
         ::File.write(opts[:path], format % [opts[:type], opts[:title], message])
