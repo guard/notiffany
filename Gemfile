@@ -9,3 +9,7 @@ gem 'nenv', "~> 0.1"
 group :test do
   gem "rspec", "~> 3.1"
 end
+
+group :development do
+  gem 'guard-rspec', "~> 4.5", require: false
+end
