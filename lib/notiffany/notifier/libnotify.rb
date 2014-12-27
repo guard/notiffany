@@ -1,7 +1,7 @@
-require "guard/notifiers/base"
+require "notiffany/notifier/base"
 
-module Guard
-  module Notifier
+module Notiffany
+  class Notifier
     # System notifications using the
     # [libnotify](https://github.com/splattael/libnotify) gem.
     #
@@ -9,32 +9,20 @@ module Guard
     # system notifications to
     # Gnome [libnotify](http://developer.gnome.org/libnotify):
     #
-    # @example Add the `libnotify` gem to your `Gemfile`
-    #   group :development
-    #     gem 'libnotify'
-    #   end
-    #
-    # @example Add the `:libnotify` notifier to your `Guardfile`
-    #   notification :libnotify
-    #
-    # @example Add the `:libnotify` notifier with configuration options to your
-    #   `Guardfile` notification :libnotify, timeout: 5, transient: true,
-    #   append: false, urgency: :critical
-    #
     class Libnotify < Base
-      # Default options for the libnotify notifications.
       DEFAULTS = {
         transient: false,
         append:    true,
         timeout:   3
       }
 
-      def self.supported_hosts
+      private
+
+      def _supported_hosts
         %w(linux freebsd openbsd sunos solaris)
       end
 
-      def self.available?(opts = {})
-        super && require_gem_safely(opts)
+      def _check_available(_opts = {})
       end
 
       # Shows a system notification.
@@ -51,35 +39,15 @@ module Guard
       # @option opts [Number, Boolean] timeout the number of seconds to display
       #   (1.5 (s), 1000 (ms), false)
       #
-      def notify(message, opts = {})
-        super
-        self.class.require_gem_safely
-
-        opts = DEFAULTS.merge(
-          summary:   opts.delete(:title),
-          icon_path: opts.delete(:image),
-          body:      message,
-          urgency:   _libnotify_urgency(opts.delete(:type))
-        ).merge(opts)
+      def _perform_notify(message, opts = {})
+        opts = opts.merge(
+          summary: opts[:title],
+          icon_path: opts[:image],
+          body: message,
+          urgency: opts[:urgency] || (opts[:type] == "failed" ? :normal : :low)
+        )
 
         ::Libnotify.show(opts)
-      end
-
-      private
-
-      # Convert Guards notification type to the best matching
-      # libnotify urgency.
-      #
-      # @param [String] type the Guard notification type
-      # @return [Symbol] the libnotify urgency
-      #
-      def _libnotify_urgency(type)
-        case type
-        when "failed"
-          :normal
-        else
-          :low
-        end
       end
     end
   end

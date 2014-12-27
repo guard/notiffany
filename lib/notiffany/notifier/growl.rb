@@ -1,7 +1,7 @@
-require "guard/notifiers/base"
+require "notiffany/notifier/base"
 
-module Guard
-  module Notifier
+module Notiffany
+  class Notifier
     # System notifications using the
     # [growl](https://github.com/visionmedia/growl) gem.
     #
@@ -13,8 +13,8 @@ module Guard
     # [Homebrew](http://mxcl.github.com/homebrew/).
     #
     # Sending notifications with this notifier will not show the different
-    # Guard notifications in the Growl preferences. Use the :gntp notifier
-    # if you want to customize each notification type in Growl.
+    # notifications in the Growl preferences. Use the :gntp notifier if you
+    # want to customize each notification type in Growl.
     #
     # @example Install `growlnotify` with Homebrew
     #   brew install growlnotify
@@ -32,7 +32,7 @@ module Guard
     # password: 'secret'
     #
     class Growl < Base
-      ERROR_INSTALL_GROWLNOTIFY = "Please install the 'growlnotify' executable'\
+      INSTALL_GROWLNOTIFY = "Please install the 'growlnotify' executable'\
     ' (available by installing the 'growl' gem)."
 
       # Default options for the growl notifications.
@@ -41,30 +41,12 @@ module Guard
         priority: 0
       }
 
-      def self.supported_hosts
+      def _supported_hosts
         %w(darwin)
       end
 
-      def self.available?(opts = {})
-        super && require_gem_safely(opts) && _register!(opts)
-      end
-
-      # @private
-      #
-      # Detects if the Growl gem is available and if not, displays an
-      # error message unless `opts[:silent]` is true.
-      #
-      # @return [Boolean] whether or not Growl is installed
-      #
-      def self._register!(opts)
-        if ::Growl.installed?
-          true
-        else
-          unless opts[:silent]
-            UI.error UI::ERROR_INSTALL_GROWLNOTIFY
-          end
-          false
-        end
+      def _check_available(_opts = {})
+        fail UnavailableError, INSTALL_GROWLNOTIFY unless ::Growl.installed?
       end
 
       # Shows a system notification.
@@ -90,13 +72,8 @@ module Guard
       # @option opts [String] password the password used for remote
       #   notifications
       #
-      def notify(message, opts = {})
-        super
-        opts.delete(:type)
-        self.class.require_gem_safely
-
-        opts = DEFAULTS.merge(opts).merge(name: "Guard")
-
+      def _perform_notify(message, opts = {})
+        opts = { name: "Notiffany" }.merge(opts)
         ::Growl.notify(message, opts)
       end
     end

@@ -1,20 +1,22 @@
 require "nenv"
 
-require_relative "../notifiers/emacs"
-require_relative "../notifiers/file_notifier"
-require_relative "../notifiers/gntp"
-require_relative "../notifiers/growl"
-require_relative "../notifiers/libnotify"
-require_relative "../notifiers/notifysend"
-require_relative "../notifiers/rb_notifu"
-require_relative "../notifiers/terminal_notifier"
-require_relative "../notifiers/terminal_title"
-require_relative "../notifiers/tmux"
+require_relative "emacs"
+require_relative "file"
+require_relative "gntp"
+require_relative "growl"
+require_relative "libnotify"
+require_relative "notifysend"
+require_relative "rb_notifu"
+require_relative "terminal_notifier"
+require_relative "terminal_title"
+require_relative "tmux"
 
-module Guard
-  module Notifier
+module Notiffany
+  class Notifier
     # @private api
 
+    # TODO: use a socket instead of passing env variables to child processes
+    # (currently probably only used by guard-cucumber anyway)
     YamlEnvStorage = Nenv::Builder.build do
       create_method(:notifiers=) { |data| YAML::dump(data) }
       create_method(:notifiers) { |data| data ? YAML::load(data) : [] }
@@ -22,15 +24,18 @@ module Guard
 
     # @private api
     class Detected
-      NO_SUPPORTED_NOTIFIERS = "Guard could not detect any of the supported" +
-        " notification libraries."
+      NO_SUPPORTED_NOTIFIERS = "Notiffany could not detect any of the"\
+        " supported notification libraries."
 
       class NoneAvailableError < RuntimeError
       end
 
-      def initialize(supported)
+      class UnknownNotifier < RuntimeError
+      end
+
+      def initialize(supported, env_namespace)
         @supported = supported
-        @environment = YamlEnvStorage.new("guard")
+        @environment = YamlEnvStorage.new(env_namespace)
       end
 
       def reset
@@ -40,35 +45,44 @@ module Guard
       def detect
         return unless _data.empty?
         @supported.each do |group|
-          group.detect { |name, _| add(name, silent: true) }
+          group.detect do |name, _|
+            begin
+              add(name, silent: true)
+              true
+            rescue Notifier::Base::UnavailableError,
+                   Notifier::Base::UnsupportedPlatform,
+                   Notifier::Base::RequireFailed
+              false
+            end
+          end
         end
 
         fail NoneAvailableError, NO_SUPPORTED_NOTIFIERS if _data.empty?
       end
 
       def available
-        _data.map { |entry| [_to_module(entry[:name]), entry[:options]] }
+        @available ||= _data.map do |entry|
+          _to_module(entry[:name]).new(entry[:options])
+        end
       end
 
       def add(name, opts)
-        klass = _to_module(name)
-        return false unless klass
-
+        @available = nil
         all = @environment.notifiers
 
         # Silently skip if it's already available, because otherwise
         # we'd have to do :turn_off, then configure, then :turn_on
         names = all.map(&:first).map(&:last)
         unless names.include?(name)
-          return false unless klass.available?(opts)
+          fail UnknownNotifier unless (klass = _to_module(name))
+
+          klass.new(opts) # raises if unavailable
           @environment.notifiers = all << { name: name, options: opts }
-          true
         end
 
         # Just overwrite the options (without turning the notifier off or on),
         # so those options will be passed in next calls to notify()
         all.each { |item| item[:options] = opts if item[:name] == name }
-        true
       end
 
       def _to_module(name)

@@ -1,7 +1,7 @@
-require "guard/notifiers/base"
+require "notiffany/notifier/base"
 
-module Guard
-  module Notifier
+module Notiffany
+  class Notifier
     # System notifications using the
     # [rb-notifu](https://github.com/stereobooster/rb-notifu) gem.
     #
@@ -12,12 +12,6 @@ module Guard
     #   group :development
     #     gem 'rb-notifu'
     #   end
-    #
-    # @example Add the `:notifu` notifier to your `Guardfile`
-    #   notification :notifu
-    #
-    # @example Add the `:notifu` notifier with configuration options to your
-    #   `Guardfile` notification :notifu, time: 5, nosound: true, xp: true
     #
     class Notifu < Base
       # Default options for the rb-notifu notifications.
@@ -30,16 +24,17 @@ module Guard
         xp:      false
       }
 
-      def self.supported_hosts
+      private
+
+      def _supported_hosts
         %w(mswin mingw)
       end
 
-      def self.gem_name
+      def _gem_name
         "rb-notifu"
       end
 
-      def self.available?(opts = {})
-        super && require_gem_safely(opts)
+      def _check_available(_opts = {})
       end
 
       # Shows a system notification.
@@ -63,26 +58,20 @@ module Guard
       # @option opts [Boolean] xp use IUserNotification interface event when
       #   IUserNotification2 is available
       #
-      def notify(message, opts = {})
-        super
-        self.class.require_gem_safely
-
-        opts = DEFAULTS.merge(
-          type:    _notifu_type(opts.delete(:type)),
-          message: message
-        ).merge(opts)
+      def _perform_notify(message, opts = {})
+        options = opts.dup
+        options[:type] = _notifu_type(opts[:type])
+        options[:message] = message
 
         # The empty block is needed until
         # https://github.com/stereobooster/rb-notifu/pull/1 is merged
-        ::Notifu.show(opts) {}
+        ::Notifu.show(options) {}
       end
 
-      private
-
-      # Converts Guards notification type to the best matching
+      # Converts generic notification type to the best matching
       # Notifu type.
       #
-      # @param [String] type the Guard notification type
+      # @param [String] type the generic notification type
       # @return [Symbol] the Notify notification type
       #
       def _notifu_type(type)

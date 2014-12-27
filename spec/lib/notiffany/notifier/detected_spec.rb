@@ -1,15 +1,18 @@
-require "guard/notifier/detected"
+require "notiffany/notifier/detected"
 
-module Guard
-  module Notifier
+module Notiffany
+  class Notifier
     RSpec.describe(Detected, exclude_stubs: [YamlEnvStorage]) do
-      subject { described_class.new(supported) }
+      subject { described_class.new(supported, "notiffany_tests") }
 
       let(:env) { instance_double(YamlEnvStorage) }
 
       let(:foo_mod) { double("foo_mod") }
       let(:bar_mod) { double("bar_mod") }
       let(:baz_mod) { double("baz_mod") }
+
+      let(:foo_obj) { double("foo_obj") }
+      let(:baz_obj) { double("baz_obj") }
 
       let(:supported) { [foo: foo_mod, baz: baz_mod] }
 
@@ -34,9 +37,11 @@ module Guard
             ]
           end
 
-          let(:expected) { [[foo_mod, {}], [baz_mod, { opt1: 3 }]] }
+          let(:expected) { [foo_obj, baz_obj] }
 
           before do
+            allow(foo_mod).to receive(:new).and_return(foo_obj)
+            allow(baz_mod).to receive(:new).and_return(baz_obj)
             allow(env).to receive(:notifiers).and_return(available)
           end
 
@@ -47,11 +52,15 @@ module Guard
       end
 
       describe ".add" do
+        before do
+          allow(env).to receive(:notifiers).and_return([])
+        end
         context "with no detected notifiers" do
           context "when unknown" do
             it "does not add the library" do
               expect(env).to_not receive(:notifiers=)
-              subject.add(:unknown, {})
+              expect { subject.add(:unknown, {}) }.
+                to raise_error(Notifier::Detected::UnknownNotifier)
             end
           end
         end
@@ -61,8 +70,10 @@ module Guard
         context "with some detected notifiers" do
           before do
             allow(env).to receive(:notifiers).and_return([])
-            allow(foo_mod).to receive(:available?).and_return(true)
-            allow(baz_mod).to receive(:available?).and_return(false)
+
+            allow(foo_mod).to receive(:new).and_return(foo_obj)
+            allow(baz_mod).to receive(:new).
+              and_raise(Notifier::Base::UnavailableError)
           end
 
           # TODO: should silent be really passed?
@@ -81,8 +92,11 @@ module Guard
         context "without any detected notifiers" do
           before do
             allow(env).to receive(:notifiers).and_return([])
-            allow(foo_mod).to receive(:available?).and_return(false)
-            allow(baz_mod).to receive(:available?).and_return(false)
+
+            allow(foo_mod).to receive(:new).
+              and_raise(Notifier::Base::UnavailableError)
+            allow(baz_mod).to receive(:new).
+              and_raise(Notifier::Base::UnavailableError)
           end
 
           let(:error) { described_class::NoneAvailableError }

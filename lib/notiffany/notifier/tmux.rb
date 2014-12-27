@@ -1,103 +1,38 @@
-require "guard/notifiers/base"
+require "notiffany/notifier/base"
 require "shellany/sheller"
 
-module Guard
-  module Notifier
+# TODO: this probably deserves a gem of it's own
+module Notiffany
+  class Notifier
     # Changes the color of the Tmux status bar and optionally
     # shows messages in the status bar.
-    #
-    # @example Add the `:tmux` notifier to your `Guardfile`
-    #   notification :tmux
-    #
-    # @example Enable text messages
-    #   notification :tmux, display_message: true
-    #
-    # @example Customize the tmux status colored for notifications
-    #   notification :tmux, color_location: 'status-right-bg'
-    #
     class Tmux < Base
-      @@session = nil
+      @session = nil
 
-      # Default options for the tmux notifications.
-      class Defaults
-        DEFAULTS = {
-          tmux_environment:       "TMUX",
-          success:                "green",
-          failed:                 "red",
-          pending:                "yellow",
-          default:                "green",
-          timeout:                5,
-          display_message:        false,
-          default_message_format: "%s - %s",
-          default_message_color:  "white",
-          display_on_all_clients: false,
-          display_title:          false,
-          default_title_format:   "%s - %s",
-          line_separator:         " - ",
-          change_color:           true,
-          color_location:         "status-left-bg"
-        }
-
-        def self.option(opts, name)
-          opts.fetch(name, DEFAULTS[name])
-        end
-
-        def self.[](name)
-          DEFAULTS[name]
-        end
-      end
+      DEFAULTS = {
+        tmux_environment:       "TMUX",
+        success:                "green",
+        failed:                 "red",
+        pending:                "yellow",
+        default:                "green",
+        timeout:                5,
+        display_message:        false,
+        default_message_format: "%s - %s",
+        default_message_color:  "white",
+        display_on_all_clients: false,
+        display_title:          false,
+        default_title_format:   "%s - %s",
+        line_separator:         " - ",
+        change_color:           true,
+        color_location:         "status-left-bg"
+      }
 
       class Client
         CLIENT = "tmux"
+
         class << self
           def version
             Float(_capture("-V")[/\d+\.\d+/])
-          end
-
-          def clients
-            ttys = _capture("list-clients", "-F", "'\#{client_tty}'")
-            ttys = ttys.split(/\n/)
-
-            # if user is running 'tmux -C' remove this client from list
-            ttys.delete("(null)")
-            ttys
-          end
-
-          def set(client, key, value)
-            case client
-            when :all, true
-              # call ourself
-              clients.each { |cl| Client.set(cl, key, value) }
-            else
-              args = client ? ["-t", client.strip] : nil
-              _run("set", "-q", *args, key, value)
-            end
-          end
-
-          def display(client, message)
-            case client
-            when :all, true
-              # call ourself
-              clients.each { |cl| Client.display(cl, message) }
-            else
-              args += ["-c", client.strip] if client
-              _run("display", *args, message)
-            end
-          end
-
-          def unset(client, key, value)
-            return set(client, key, value) if value
-            args = client ? ["-t", client.strip] : []
-            _run("set", "-q", "-u", *args, key)
-          end
-
-          def parse_options(client)
-            output = _capture("show", "-t", client)
-            Hash[output.lines.map { |line| _parse_option(line) }]
-          end
-
-          def _parse_option(line)
-            line.partition(" ").map(&:strip).reject(&:empty?)
           end
 
           def _capture(*args)
@@ -108,13 +43,96 @@ module Guard
             Shellany::Sheller.run(([CLIENT] + args).join(" "))
           end
         end
+
+        def initialize(client)
+          @client = client
+        end
+
+        def clients
+          return [@client] unless @client == :all
+          ttys = _capture("list-clients", "-F", "'\#{client_tty}'")
+          ttys = ttys.split(/\n/)
+
+          # if user is running 'tmux -C' remove this client from list
+          ttys.delete("(null)")
+          ttys
+        end
+
+        def set(key, value)
+          clients.each do |client|
+            args = client ? ["-t", client.strip] : nil
+            _run("set", "-q", *args, key, value)
+          end
+        end
+
+        def display_message(message)
+          clients.each do |client|
+            args += ["-c", client.strip] if client
+            # TODO: should properly escape message here
+            _run("display", *args, "'#{message}'")
+          end
+        end
+
+        def unset(key, value)
+          clients.each do |client|
+            args = client ? ["-t", client.strip] : []
+            if value
+              _run("set", "-q", *args, key, value)
+            else
+              _run("set", "-q", "-u", *args, key)
+            end
+          end
+        end
+
+        def parse_options
+          output = _capture("show", "-t", @client)
+          Hash[output.lines.map { |line| _parse_option(line) }]
+        end
+
+        def message_fg=(color)
+          set("message-fg", color)
+        end
+
+        def message_bg=(color)
+          set("message-bg", color)
+        end
+
+        def display_time=(time)
+          set("display-time", time)
+        end
+
+        def title=(string)
+          # TODO: properly escape?
+          set("set-titles-string", "'#{string}'")
+        end
+
+        private
+
+        def _run(*args)
+          self.class._run(*args)
+        end
+
+        def _capture(*args)
+          self.class._capture(*args)
+        end
+
+        def _parse_option(line)
+          line.partition(" ").map(&:strip).reject(&:empty?)
+        end
       end
 
       class Session
-        def initialize(_tmux)
+        def initialize
           @options_store = {}
 
-          Client.clients.each do |client|
+          # NOTE: we are reading the settings of all clients
+          # - regardless of the :display_on_all_clients option
+
+          # Ideally, this should be done incrementally (e.g. if we start with
+          # "current" client and then override the :display_on_all_clients to
+          # true, only then the option store should be updated to contain
+          # settings of all clients
+          Client.new(:all).clients.each do |client|
             @options_store[client] = {
               "status-left-bg"  => nil,
               "status-right-bg" => nil,
@@ -123,14 +141,14 @@ module Guard
               "message-bg"      => nil,
               "message-fg"      => nil,
               "display-time"    => nil
-            }.merge(Client.parse_options(client))
+            }.merge(Client.new(client).parse_options)
           end
         end
 
         def close
           @options_store.each do |client, options|
             options.each do |key, value|
-              Client.unset(client, key, value)
+              Client.new(client).unset(key, value)
             end
           end
           @options_store = nil
@@ -140,17 +158,32 @@ module Guard
       class Error < RuntimeError
       end
 
-      ERROR_NOT_INSIDE_TMUX = "The :tmux notifier runs only on when Guard"\
-              " is executed inside of a tmux session."
+      ERROR_NOT_INSIDE_TMUX = ":tmux notifier is only available inside a "\
+        "TMux session."
 
-      ERROR_ANCIENT_TMUX = "Your tmux version is way too old!"
+      ERROR_ANCIENT_TMUX = "Your tmux version is way too old (%s)!"
 
-      def self.available?(opts = {})
-        return unless super
+      # Notification starting, save the current Tmux settings
+      # and quiet the Tmux output.
+      #
+      def turn_on
+        self.class._start_session
+      end
 
-        fail "PREVIOUS TMUX SESSION NOT CLEARED!" if @@session || nil
+      # Notification stopping. Restore the previous Tmux state
+      # if available (existing options are restored, new options
+      # are unset) and unquiet the Tmux output.
+      #
+      def turn_off
+        self.class._end_session
+      end
 
-        var_name = Defaults.option(opts, :tmux_environment)
+      private
+
+      def _check_available(opts = {})
+        fail "PREVIOUS TMUX SESSION NOT CLEARED!" if @session || nil
+
+        var_name = opts[:tmux_environment]
         fail Error, ERROR_NOT_INSIDE_TMUX unless ENV.key?(var_name)
 
         version = Client.version
@@ -158,8 +191,7 @@ module Guard
 
         true
       rescue Error => e
-        ::Guard::UI.error e.message unless opts[:silent]
-        false
+        fail UnavailableError, e.message
       end
 
       # Shows a system notification.
@@ -188,26 +220,25 @@ module Guard
       # @option options [Boolean] display_on_all_clients whether to display a
       #   message on all tmux clients or not
       #
-      def notify(message, options = {})
-        super
-        options.delete(:image)
-
-        change_color = Defaults.option(options, :change_color)
-        locations = Array(Defaults.option(options, :color_location))
-        display_the_title = Defaults.option(options, :display_title)
-        display_message = Defaults.option(options, :display_message)
-        type  = options.delete(:type).to_s
-        title = options.delete(:title)
+      def _perform_notify(message, options = {})
+        change_color = options[:change_color]
+        locations = Array(options[:color_location])
+        display_the_title = options[:display_title]
+        display_message = options[:display_message]
+        type  = options[:type].to_s
+        title = options[:title]
 
         if change_color
-          color = tmux_color(type, options)
-          locations.each { |location| Client.set(_all?, location, color) }
+          color = _tmux_color(type, options)
+          locations.each do |location|
+            Client.new(client(options)).set(location, color)
+          end
         end
 
-        display_title(type, title, message, options) if display_the_title
+        _display_title(type, title, message, options) if display_the_title
 
         return unless display_message
-        display_message(type, title, message, options)
+        _display_message(type, title, message, options)
       end
 
       # Displays a message in the title bar of the terminal.
@@ -224,14 +255,14 @@ module Guard
       # @option options [String] default_message_format a string to use as
       #   formatter when no format per type is defined.
       #
-      def display_title(type, title, message, options = {})
+      def _display_title(type, title, message, options = {})
         format = "#{type}_title_format".to_sym
-        default_title_format = Defaults.option(options, :default_title_format)
+        default_title_format = options[:default_title_format]
         title_format   = options.fetch(format, default_title_format)
         teaser_message = message.split("\n").first
         display_title  = title_format % [title, teaser_message]
 
-        Client.set(_all?, "set-titles-string", "'#{display_title}'")
+        Client.new(client(options)).title = display_title
       end
 
       # Displays a message in the status bar of tmux.
@@ -262,11 +293,11 @@ module Guard
       # @option options [String] line_separator a string to use instead of a
       #   line-break.
       #
-      def display_message(type, title, message, opts = {})
-        default_format = Defaults.option(opts, :default_message_format)
-        default_color = Defaults.option(opts, :default_message_color)
-        display_time = Defaults.option(opts, :timeout)
-        separator = Defaults.option(opts, :line_separator)
+      def _display_message(type, title, message, opts = {})
+        default_format = opts[:default_message_format]
+        default_color = opts[:default_message_color]
+        display_time = opts[:timeout]
+        separator = opts[:line_separator]
 
         format = "#{type}_message_format".to_sym
         message_format = opts.fetch(format, default_format)
@@ -274,14 +305,15 @@ module Guard
         color = "#{type}_message_color".to_sym
         message_color = opts.fetch(color, default_color)
 
-        color = tmux_color(type, opts)
+        color = _tmux_color(type, opts)
         formatted_message = message.split("\n").join(separator)
-        display_message = message_format % [title, formatted_message]
+        msg = message_format % [title, formatted_message]
 
-        Client.set(_all?, "display-time", display_time * 1000)
-        Client.set(_all?, "message-fg", message_color)
-        Client.set(_all?, "message-bg", color)
-        Client.display(_all?, "'#{display_message}'")
+        cl = Client.new(client(opts))
+        cl.display_time = display_time * 1000
+        cl.message_fg = message_color
+        cl.message_bg = color
+        cl.display_message(msg)
       end
 
       # Get the Tmux color for the notification type.
@@ -290,45 +322,28 @@ module Guard
       # @param [String] type the notification type
       # @return [String] the name of the emacs color
       #
-      def tmux_color(type, opts = {})
+      def _tmux_color(type, opts = {})
         type = type.to_sym
-        opts[type] || Defaults[type] || Defaults.option(opts, :default)
+        opts[type] || opts[:default]
       end
-
-      # Notification starting, save the current Tmux settings
-      # and quiet the Tmux output.
-      #
-      def self.turn_on
-        _start_session
-      end
-
-      # Notification stopping. Restore the previous Tmux state
-      # if available (existing options are restored, new options
-      # are unset) and unquiet the Tmux output.
-      #
-      def self.turn_off
-        _end_session
-      end
-
-      private
 
       def self._start_session
-        fail "Already turned on!" if @@session
-        @@session = Session.new(self)
+        fail "Already turned on!" if @session
+        @session = Session.new
       end
 
       def self._end_session
-        fail "Already turned off!" unless @@session || nil
-        @@session.close
-        @@session = nil
+        fail "Already turned off!" unless @session || nil
+        @session.close
+        @session = nil
       end
 
       def self._session
-        @@session
+        @session
       end
 
-      def _all?
-        Defaults.option(options, :display_on_all_clients)
+      def client(options)
+        options[:display_on_all_clients] ? :all : nil
       end
     end
   end

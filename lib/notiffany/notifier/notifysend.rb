@@ -1,8 +1,9 @@
-require "guard/notifiers/base"
+require "notiffany/notifier/base"
+
 require "shellany/sheller"
 
-module Guard
-  module Notifier
+module Notiffany
+  class Notifier
     # System notifications using notify-send, a binary that ships with
     # the libnotify-bin package on many Debian-based distributions.
     #
@@ -19,40 +20,18 @@ module Guard
       # Full list of options supported by notify-send.
       SUPPORTED = [:u, :t, :i, :c, :h]
 
-      def self.supported_hosts
+      private
+
+      def _supported_hosts
         %w(linux freebsd openbsd sunos solaris)
       end
 
-      def self.available?(opts = {})
-        super && _register!(opts)
-      end
+      def _check_available(_opts = {})
+        return true unless Shellany::Sheller.stdout("which notify-send").empty?
 
-      # @private
-      #
-      # @return [Boolean] whether or not the notify-send binary is available
-      #
-      def self._notifysend_binary_available?
-        !Shellany::Sheller.stdout("which notify-send").empty?
-      end
-
-      # @private
-      #
-      # Detects if the notify-send binary is available and if not, displays an
-      # error message unless `opts[:silent]` is true.
-      #
-      # @return [Boolean] whether or not the notify-send binary is available
-      #
-      def self._register!(opts)
-        if _notifysend_binary_available?
-          true
-        else
-          unless opts[:silent]
-            ::Guard::UI.error "The :notifysend notifier runs only on Linux"\
-              ", FreeBSD, OpenBSD and Solaris with the libnotify-bin "\
-              "package installed."
-          end
-          false
-        end
+        fail UnsupportedPlatform, "The :notifysend notifier runs only on Linux"\
+            ", FreeBSD, OpenBSD and Solaris with the libnotify-bin "\
+            "package installed."
       end
 
       # Shows a system notification.
@@ -67,20 +46,16 @@ module Guard
       # @option opts [Number] t the number of milliseconds to display (1000,
       #   3000)
       #
-      def notify(message, opts = {})
-        super
-
+      def _perform_notify(message, opts = {})
         command = [opts[:title], message]
-        opts = DEFAULTS.merge(
-          i: opts.delete(:image),
-          u: _notifysend_urgency(opts.delete(:type))
-        ).merge(opts)
+        opts = opts.merge(
+          i: opts[:i] || opts[:image],
+          u: opts[:u] || _notifysend_urgency(opts[:type])
+        )
 
         Shellany::Sheller.
           run("notify-send", *_to_arguments(command, SUPPORTED, opts))
       end
-
-      private
 
       # Converts Guards notification type to the best matching
       # notify-send urgency.

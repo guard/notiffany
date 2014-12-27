@@ -1,10 +1,26 @@
-require "guard/notifiers/base"
+require "notiffany/notifier/base"
 
-module Guard
-  module Notifier
+module Notiffany
+  class Notifier
     # Shows system notifications in the terminal title bar.
     #
     class TerminalTitle < Base
+      DEFAULTS = {}
+
+      # Clears the terminal title
+      def turn_off
+        STDOUT.puts "\e]2;\a"
+      end
+
+      private
+
+      def _gem_name
+        nil
+      end
+
+      def _check_available(_options)
+      end
+
       # Shows a system notification.
       #
       # @param [Hash] opts additional notification library options
@@ -13,18 +29,10 @@ module Guard
       #   'pending', 'failed' or 'notify'
       # @option opts [String] title the notification title
       #
-      def notify(message, opts = {})
-        super
-
+      def _perform_notify(message, opts = {})
         first_line = message.sub(/^\n/, "").sub(/\n.*/m, "")
 
         STDOUT.puts "\e]2;[#{ opts[:title] }] #{ first_line }\a"
-      end
-
-      # Clears the terminal title
-      #
-      def self.turn_off
-        STDOUT.puts "\e]2;\a"
       end
     end
   end

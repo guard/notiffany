@@ -1,121 +1,94 @@
-require "guard/notifiers/terminal_notifier"
+require "notiffany/notifier/terminal_notifier"
 
-RSpec.describe Guard::Notifier::TerminalNotifier do
-  let(:notifier) { described_class.new }
+module Notiffany
+  RSpec.describe Notifier::TerminalNotifier do
+    let(:ui) { double("ui") }
+    let(:options) { {} }
+    let(:os) { "solaris" }
+    subject { described_class.new(ui, options) }
 
-  before do
-    allow(described_class).to receive(:require_gem_safely) { true }
-    stub_const "TerminalNotifier::Guard", double(available?: true)
-  end
+    before do
+      allow(Kernel).to receive(:require)
+      allow(RbConfig::CONFIG).to receive(:[]).with("host_os") { os }
 
-  describe ".supported_hosts" do
-    it { expect(described_class.supported_hosts).to eq %w(darwin) }
-  end
-
-  describe ".gem_name" do
-    it { expect(described_class.gem_name).to eq "terminal-notifier-guard" }
-  end
-
-  describe ".available?" do
-    context "host is not supported" do
-      before do
-        allow(RbConfig::CONFIG).to receive(:[]).with("host_os") { "mswin" }
-      end
-
-      it "do not require terminal-notifier-guard" do
-        expect(described_class).to_not receive(:require_gem_safely)
-
-        expect(described_class).to_not be_available
-      end
+      stub_const "TerminalNotifier::Guard", double(available?: true)
     end
 
-    context "host is supported" do
-      before do
-        allow(RbConfig::CONFIG).to receive(:[]).with("host_os") { "darwin" }
-      end
+    describe ".available?" do
+      context "host is not supported" do
+        let(:os) { "mswin" }
 
-      it "requires terminal-notifier-guard" do
-        expect(described_class).to receive(:require_gem_safely) { true }
-        expect(described_class).to receive(:_register!) { true }
-
-        expect(described_class).to be_available
-      end
-
-      context ".require_gem_safely fails" do
-        before do
-          expect(described_class).to receive(:require_gem_safely) { false }
-        end
-
-        it "requires terminal-notifier-guard" do
-          expect(described_class).to_not receive(:_register!)
-
-          expect(described_class).to_not be_available
+        it "fails" do
+          expect { subject }.to raise_error(Notifier::Base::UnavailableError)
         end
       end
 
-      context "._register! fails" do
-        before do
-          expect(described_class).to receive(:require_gem_safely) { true }
-          expect(described_class).to receive(:_register!) { false }
-        end
-
-        it "requires terminal-notifier-guard" do
-          expect(described_class).to_not be_available
+      context "host is supported" do
+        let(:os) { "darwin" }
+        it "works" do
+          subject
         end
       end
     end
-  end
 
-  describe "#notify" do
-    context "with options passed at initialization" do
-      let(:notifier) { described_class.new(title: "Hello", silent: true) }
+    describe "#notify" do
+      let(:os) { "darwin" }
+      context "with options passed at initialization" do
+        let(:options) { { title: "Hello", silent: true } }
 
-      it "uses these options by default" do
-        expect(::TerminalNotifier::Guard).to receive(:execute).
-          with(false, title: "Hello", type: :success, message: "any message")
+        it "uses these options by default" do
+          expect(TerminalNotifier::Guard).to receive(:execute).
+            with(false, title: "Hello", type: :success, message: "any message")
 
-        notifier.notify("any message")
+          subject.notify("any message")
+        end
+
+        it "overwrites object options with passed options" do
+          expect(::TerminalNotifier::Guard).to receive(:execute).
+            with(
+              false,
+              title: "Welcome",
+              type: :success,
+              message: "any message")
+
+          subject.notify("any message", title: "Welcome")
+        end
       end
 
-      it "overwrites object options with passed options" do
-        expect(::TerminalNotifier::Guard).to receive(:execute).
-          with(false, title: "Welcome", type: :success, message: "any message")
-
-        notifier.notify("any message", title: "Welcome")
-      end
-    end
-
-    it "should call the notifier." do
-      expect(::TerminalNotifier::Guard).to receive(:execute).
-        with(false,
-             title: "any title",
-             type: :success,
-             message: "any message")
-
-      notifier.notify("any message", title: "any title")
-    end
-
-    it "should allow the title to be customized" do
-      expect(::TerminalNotifier::Guard).to receive(:execute).
-        with(false,
-             title: "any title",
-             message: "any message",
-             type: :error)
-
-      notifier.notify("any message", type: :error, title: "any title")
-    end
-
-    context "without a title set" do
-      it "should show the app name in the title" do
+      it "should call the notifier." do
         expect(::TerminalNotifier::Guard).to receive(:execute).
           with(false,
-               title: "FooBar Success",
+               title: "any title",
                type: :success,
                message: "any message")
 
-        notifier.notify("any message", title: nil, app_name: "FooBar")
+        subject.notify("any message", title: "any title")
+      end
+
+      it "should allow the title to be customized" do
+        expect(::TerminalNotifier::Guard).to receive(:execute).
+          with(false,
+               title: "any title",
+               message: "any message",
+               type: :error)
+
+        subject.notify("any message", type: :error, title: "any title")
+      end
+
+      context "without a title set" do
+        it "should show the app name in the title" do
+          expect(::TerminalNotifier::Guard).to receive(:execute).
+            with(false,
+                 title: "FooBar Success",
+                 type: :success,
+                 message: "any message")
+
+          # TODO: why would anyone set the title explicitly to nil? and also
+          # expect it to be set to a default value?
+          subject.notify("any message", title: nil, app_name: "FooBar")
+        end
       end
     end
-  end
 
+  end
 end

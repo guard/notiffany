@@ -1,7 +1,7 @@
-require "guard/notifiers/base"
+require "notiffany/notifier/base"
 
-module Guard
-  module Notifier
+module Notiffany
+  class Notifier
     # System notifications using the
     # [ruby_gntp](https://github.com/snaka/ruby_gntp) gem.
     #
@@ -15,21 +15,7 @@ module Guard
     # * [Growl for Windows](http://www.growlforwindows.com)
     # * [Growl for Linux](http://mattn.github.com/growl-for-linux)
     # * [Snarl](https://sites.google.com/site/snarlapp)
-    #
-    # @example Add the `ruby_gntp` gem to your `Gemfile`
-    #   group :development
-    #     gem 'ruby_gntp'
-    #   end
-    #
-    # @example Add the `:gntp` notifier to your `Guardfile`
-    #   notification :gntp
-    #
-    # @example Add the `:gntp` notifier with configuration options to your
-    #   `Guardfile` notification :gntp, sticky: true, host: '192.168.1.5',
-    #   password: 'secret'
-    #
     class GNTP < Base
-      # Default options for the ruby gtnp notifications.
       DEFAULTS = {
         sticky: false
       }
@@ -41,16 +27,15 @@ module Guard
         port:     23053
       }
 
-      def self.supported_hosts
+      def _supported_hosts
         %w(darwin linux freebsd openbsd sunos solaris mswin mingw cygwin)
       end
 
-      def self.gem_name
+      def _gem_name
         "ruby_gntp"
       end
 
-      def self.available?(opts = {})
-        super && require_gem_safely(opts)
+      def _check_available(_opts)
       end
 
       # Shows a system notification.
@@ -68,24 +53,21 @@ module Guard
       # @option opts [Integer] port the port to send a remote notification
       # @option opts [Boolean] sticky make the notification sticky
       #
-      def notify(message, opts = {})
-        super
-        self.class.require_gem_safely
-
-        opts = DEFAULTS.merge(
-          name: opts.delete(:type).to_s,
+      def _perform_notify(message, opts = {})
+        opts = {
+          name: opts[:type].to_s,
           text: message,
-          icon: opts.delete(:image)
-        ).merge(opts)
+          icon: opts[:image]
+        }.merge(opts)
 
-        _client(opts).notify(opts)
+        _gntp_client(opts).notify(opts)
       end
 
       private
 
       def _register!(gntp_client)
         gntp_client.register(
-          app_icon: images_path.join("guard.png").to_s,
+          app_icon: _image_path(:guard),
           notifications: [
             { name: "notify", enabled: true },
             { name: "failed", enabled: true },
@@ -95,13 +77,14 @@ module Guard
         )
       end
 
-      def _client(opts = {})
+      def _gntp_client(opts = {})
         @_client ||= begin
           gntp = ::GNTP.new(
-            "Guard",
-            opts.delete(:host) { CLIENT_DEFAULTS[:host] },
-            opts.delete(:password) { CLIENT_DEFAULTS[:password] },
-            opts.delete(:port) { CLIENT_DEFAULTS[:port] })
+            "Notiffany",
+            opts.fetch(:host) { CLIENT_DEFAULTS[:host] },
+            opts.fetch(:password) { CLIENT_DEFAULTS[:password] },
+            opts.fetch(:port) { CLIENT_DEFAULTS[:port] }
+          )
           _register!(gntp)
           gntp
         end

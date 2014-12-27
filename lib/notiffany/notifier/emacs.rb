@@ -1,13 +1,10 @@
-require "guard/notifiers/base"
+require "notiffany/notifier/base"
 require "shellany/sheller"
 
-module Guard
-  module Notifier
+module Notiffany
+  class Notifier
     # Send a notification to Emacs with emacsclient
     # (http://www.emacswiki.org/emacs/EmacsClient).
-    #
-    # @example Add the `:emacs` notifier to your `Guardfile`
-    #   notification :emacs
     #
     class Emacs < Base
       DEFAULTS = {
@@ -18,14 +15,13 @@ module Guard
         fontcolor: "White",
       }
 
-      def self.available?(opts = {})
-        return false unless super
+      private
 
-        client_name = opts.fetch(:client, DEFAULTS[:client])
-        cmd = "#{client_name} --eval '1' 2> #{IO::NULL} || echo 'N/A'"
+      def _check_available(options)
+        cmd = "#{options[:client]} --eval '1' 2> #{IO::NULL} || echo 'N/A'"
         stdout = Shellany::Sheller.stdout(cmd)
-        return false if stdout.nil?
-        !%w(N/A 'N/A').include?(stdout.chomp)
+        fail UnavailableError if stdout.nil?
+        fail UnavailableError if %w(N/A 'N/A').include?(stdout.chomp)
       end
 
       # Shows a system notification.
@@ -49,12 +45,9 @@ module Guard
       # @option opts [String, Integer] priority specify an int or named key
       #   (default is 0)
       #
-      def notify(message, opts = {})
-        super
-
-        opts      = DEFAULTS.merge(opts)
-        color     = emacs_color(opts[:type], opts)
-        fontcolor = emacs_color(:fontcolor, opts)
+      def _perform_notify(_message, opts = {})
+        color     = _emacs_color(opts[:type], opts)
+        fontcolor = _emacs_color(:fontcolor, opts)
         elisp = <<-EOF.gsub(/\s+/, " ").strip
           (set-face-attribute 'mode-line nil
                :background "#{color}"
@@ -84,15 +77,17 @@ module Guard
       #
       # @return [String] the name of the emacs color
       #
-      def emacs_color(type, options = {})
+      def _emacs_color(type, options = {})
         default = options.fetch(:default, DEFAULTS[:default])
         options.fetch(type.to_sym, default)
       end
 
-      private
-
       def _run_cmd(cmd, *args)
         Shellany::Sheller.run(cmd, *args)
+      end
+
+      def _gem_name
+        nil
       end
     end
   end

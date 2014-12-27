@@ -1,44 +1,39 @@
-require "guard/notifiers/terminal_title"
+require "notiffany/notifier/terminal_title"
 
-RSpec.describe Guard::Notifier::TerminalTitle do
-  let(:notifier) { described_class.new }
+RSpec.describe Notiffany::Notifier::TerminalTitle do
+  let(:ui) { double("ui") }
+  let(:options) { { title: "Hello" } }
+  let(:os) { "solaris" }
+  subject { described_class.new(ui, options) }
 
-  describe ".available?" do
-    it "returns true" do
-      expect(described_class).to be_available
-    end
+  before do
+    allow(Kernel).to receive(:require)
+    allow(RbConfig::CONFIG).to receive(:[]).with("host_os") { os }
   end
 
   describe "#notify" do
     context "with options passed at initialization" do
-      let(:notifier) { described_class.new(title: "Hello", silent: true) }
-
       it "uses these options by default" do
         expect(STDOUT).to receive(:puts).with("\e]2;[Hello] first line\a")
-
-        notifier.notify("first line\nsecond line\nthird")
+        subject.notify("first line\nsecond line\nthird")
       end
 
       it "overwrites object options with passed options" do
         expect(STDOUT).to receive(:puts).with("\e]2;[Welcome] first line\a")
-
-        notifier.notify("first line\nsecond line\nthird", title: "Welcome")
+        subject.notify("first line\nsecond line\nthird", title: "Welcome")
       end
     end
 
     it "set title + first line of message to terminal title" do
       expect(STDOUT).to receive(:puts).with("\e]2;[any title] first line\a")
-
-      notifier.notify("first line\nsecond line\nthird", title: "any title")
+      subject.notify("first line\nsecond line\nthird", title: "any title")
     end
   end
 
   describe ".turn_off" do
     it "clears the terminal title" do
       expect(STDOUT).to receive(:puts).with("\e]2;\a")
-
-      described_class.turn_off
+      subject.turn_off
     end
   end
-
 end
