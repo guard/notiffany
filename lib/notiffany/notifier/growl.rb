@@ -74,6 +74,7 @@ module Notiffany
       #
       def _perform_notify(message, opts = {})
         opts = { name: "Notiffany" }.merge(opts)
+        opts.select! { |k, _| ::Growl::Base.switches.include?(k) }
         ::Growl.notify(message, opts)
       end
     end
