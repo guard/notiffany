@@ -2,7 +2,20 @@ require "notiffany/notifier/growl"
 
 module Notiffany
   RSpec.describe Notifier::Growl do
-    let(:growl) { double("Growl", installed?: true) }
+    module FakeGrowl
+      def self.notify(message, opts)
+      end
+
+      def self.installed?
+      end
+
+      class Base
+        def self.switches
+          [:sticky, :priority, :name, :title, :image]
+        end
+      end
+    end
+    let(:growl) { FakeGrowl }
 
     let(:options) { {} }
     let(:os) { "solaris" }
@@ -13,6 +26,8 @@ module Notiffany
       allow(RbConfig::CONFIG).to receive(:[]).with("host_os") { os }
 
       stub_const "Growl", growl
+      allow(growl).to receive(:installed?).and_return(true)
+      allow(growl).to receive(:notify)
     end
 
     describe "#initialize" do
@@ -116,6 +131,29 @@ module Notiffany
 
           subject.notify(
             "Waiting for something",
+            type: :pending,
+            title: "Waiting",
+            image: "/tmp/wait.png",
+            sticky:   true,
+            priority: 2
+          )
+        end
+      end
+
+      context "with options Growl cannot handle" do
+        it "passes options only Growl can handle" do
+          expect(growl).to receive(:notify).with(
+            "Foo",
+            sticky:   true,
+            priority: 2,
+            name:     "Notiffany",
+            title:    "Waiting",
+            image:    "/tmp/wait.png"
+          )
+
+          subject.notify(
+            "Foo",
+            foo: :bar,
             type: :pending,
             title: "Waiting",
             image: "/tmp/wait.png",
