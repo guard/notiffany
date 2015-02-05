@@ -28,7 +28,7 @@ module Notiffany
       }
 
       def _supported_hosts
-        %w(darwin linux freebsd openbsd sunos solaris mswin mingw cygwin)
+        %w(darwin linux linux-gnu freebsd openbsd sunos solaris mswin mingw cygwin)
       end
 
       def _gem_name
