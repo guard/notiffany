@@ -23,7 +23,7 @@ module Notiffany
       private
 
       def _supported_hosts
-        %w(linux freebsd openbsd sunos solaris)
+        %w(linux linux-gnu freebsd openbsd sunos solaris)
       end
 
       def _check_available(_opts = {})

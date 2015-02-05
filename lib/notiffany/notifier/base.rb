@@ -6,6 +6,7 @@ module Notiffany
       HOSTS = {
         darwin:  "Mac OS X",
         linux:   "Linux",
+        'linux-gnu' =>   "Linux",
         freebsd: "FreeBSD",
         openbsd: "OpenBSD",
         sunos:   "SunOS",
