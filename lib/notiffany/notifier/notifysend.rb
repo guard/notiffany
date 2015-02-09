@@ -22,6 +22,11 @@ module Notiffany
 
       private
 
+      # notify-send has no gem, just a binary to shell out
+      def _gem_name
+        nil
+      end
+      
       def _supported_hosts
         %w(linux linux-gnu freebsd openbsd sunos solaris)
       end
