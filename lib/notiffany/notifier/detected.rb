@@ -98,6 +98,8 @@ module Notiffany
         all.each { |item| item[:options] = opts if item[:name] == name }
       end
 
+      private
+
       def _to_module(name)
         @supported.each do |group|
           next unless (notifier = group.detect { |n, _| n == name })
