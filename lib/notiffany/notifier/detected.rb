@@ -1,4 +1,5 @@
 require "nenv"
+require "yaml"
 
 require_relative "emacs"
 require_relative "file"
