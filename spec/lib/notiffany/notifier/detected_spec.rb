@@ -2,6 +2,27 @@ require "notiffany/notifier/detected"
 
 module Notiffany
   class Notifier
+    RSpec.describe YamlEnvStorage do
+      let(:subject) { YamlEnvStorage.new("notiffany_tests_foo") }
+      describe "#notifiers" do
+
+        context "when set to empty array" do
+          before { subject.notifiers = [] }
+          specify { expect(subject.notifiers).to be_empty }
+        end
+
+        context "when set to nil" do
+          before { subject.notifiers = nil }
+          specify { expect(subject.notifiers).to be_empty }
+        end
+
+        context "when env is empty" do
+          before { ENV['NOTIFFANY_TESTS_FOO_NOTIFIERS'] = nil }
+          specify { expect(subject.notifiers).to be_empty }
+        end
+      end
+    end
+
     RSpec.describe(Detected, exclude_stubs: [YamlEnvStorage]) do
       let(:logger) { double("Logger", debug: nil) }
 
@@ -112,7 +133,7 @@ module Notiffany
         end
 
         it "resets the detected notifiers" do
-          expect(env).to receive(:notifiers=).with(nil)
+          expect(env).to receive(:notifiers=).with([])
           subject.reset
         end
       end
