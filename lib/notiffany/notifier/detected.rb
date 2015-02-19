@@ -1,4 +1,5 @@
 require "nenv"
+require "yaml"
 
 require_relative "emacs"
 require_relative "file"
@@ -18,7 +19,7 @@ module Notiffany
     # TODO: use a socket instead of passing env variables to child processes
     # (currently probably only used by guard-cucumber anyway)
     YamlEnvStorage = Nenv::Builder.build do
-      create_method(:notifiers=) { |data| YAML::dump(data) }
+      create_method(:notifiers=) { |data| YAML::dump(data || []) }
       create_method(:notifiers) { |data| data ? YAML::load(data) : [] }
     end
 
@@ -52,11 +53,11 @@ module Notiffany
       end
 
       def reset
-        @environment.notifiers = nil
+        @environment.notifiers = []
       end
 
       def detect
-        return unless _data.empty?
+        return unless _notifiers.empty?
         @supported.each do |group|
           group.detect do |name, _|
             begin
@@ -69,18 +70,18 @@ module Notiffany
           end
         end
 
-        fail NoneAvailableError, NO_SUPPORTED_NOTIFIERS if _data.empty?
+        fail NoneAvailableError, NO_SUPPORTED_NOTIFIERS if _notifiers.empty?
       end
 
       def available
-        @available ||= _data.map do |entry|
+        @available ||= _notifiers.map do |entry|
           _to_module(entry[:name]).new(entry[:options])
         end
       end
 
       def add(name, opts)
         @available = nil
-        all = @environment.notifiers
+        all = _notifiers
 
         # Silently skip if it's already available, because otherwise
         # we'd have to do :turn_off, then configure, then :turn_on
@@ -97,6 +98,8 @@ module Notiffany
         all.each { |item| item[:options] = opts if item[:name] == name }
       end
 
+      private
+
       def _to_module(name)
         @supported.each do |group|
           next unless (notifier = group.detect { |n, _| n == name })
@@ -105,8 +108,8 @@ module Notiffany
         nil
       end
 
-      def _data
-        @environment.notifiers || []
+      def _notifiers
+        @environment.notifiers
       end
     end
   end
