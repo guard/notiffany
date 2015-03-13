@@ -6,10 +6,15 @@ require 'notiffany/version'
 Gem::Specification.new do |spec|
   spec.name          = "notiffany"
   spec.version       = Notiffany::VERSION
-  spec.authors       = ["Cezary Baginski"]
+  spec.authors       = ["Cezary Baginski", "Rémy Coutable", "Thibaud Guillaume-Gentil"]
   spec.email         = ["cezary@chronomantic.net"]
+
   spec.summary       = %q{Notifier library (extracted from Guard project)}
-  spec.description   = %q{Single wrapper for most popular notification libraries}
+  spec.description   = <<-EOF
+    Wrapper libray for most popular notification
+    libraries such as Growl, Libnotify, Notifu
+  EOF
+
   spec.homepage      = "https://github.com/guard/notiffany"
   spec.license       = "MIT"
 
