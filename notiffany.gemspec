@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["cezary@chronomantic.net"]
   spec.summary       = %q{Notifier library (extracted from Guard project)}
   spec.description   = %q{Single wrapper for most popular notification libraries}
-  spec.homepage      = ""
+  spec.homepage      = "https://github.com/guard/notiffany"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0").reject do |f|
