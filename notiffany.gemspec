@@ -18,9 +18,13 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/guard/notiffany"
   spec.license       = "MIT"
 
-  spec.files         = `git ls-files -z`.split("\x0").reject do |f|
-    /^spec\//.match(f)
-  end
+  git_files = `git ls-files -z`.split("\x0")
+  files = git_files.select { |f| /^lib\/.*$/ =~ f }
+  files += %w(README.md LICENSE.txt)
+
+  # skip the large images/guard.png
+  files += %w(images/pending.png images/failed.png images/success.png)
+  spec.files = files
 
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
