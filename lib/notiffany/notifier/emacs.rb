@@ -21,7 +21,7 @@ module Notiffany
         end
 
         def available?
-          emacs_eval("'1'")
+          emacs_eval({ 'ALTERNATE_EDITOR' =>'false' }, "'1'")
         end
 
         def notify(color, bgcolor)
@@ -35,8 +35,8 @@ module Notiffany
 
         private
 
-        def emacs_eval(code)
-          Shellany::Sheller.run(@client, "--eval", code)
+        def emacs_eval(env={}, code)
+          Shellany::Sheller.run(env, @client, "--eval", code)
         end
       end
 
