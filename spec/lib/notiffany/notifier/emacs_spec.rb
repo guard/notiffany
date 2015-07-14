@@ -13,8 +13,11 @@ module Notiffany
 
     describe "#available?" do
       before do
-        allow(sheller).to receive(:run).with('emacsclient', '--eval', "'1'").
-          and_return(result)
+        allow(sheller).to receive(:run).with(
+          { 'ALTERNATE_EDITOR' => 'false' },
+          'emacsclient',
+          '--eval',
+          "'1'").and_return(result)
       end
 
       context "when the client command works" do
