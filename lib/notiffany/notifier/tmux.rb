@@ -10,21 +10,22 @@ module Notiffany
       @session = nil
 
       DEFAULTS = {
-        tmux_environment:       "TMUX",
-        success:                "green",
-        failed:                 "red",
-        pending:                "yellow",
-        default:                "green",
-        timeout:                5,
-        display_message:        false,
-        default_message_format: "%s - %s",
-        default_message_color:  "white",
-        display_on_all_clients: false,
-        display_title:          false,
-        default_title_format:   "%s - %s",
-        line_separator:         " - ",
-        change_color:           true,
-        color_location:         "status-left-bg"
+        tmux_environment:        "TMUX",
+        success:                 "green",
+        failed:                  "red",
+        pending:                 "yellow",
+        default:                 "green",
+        timeout:                 5,
+        display_message:         false,
+        default_message_format:  "%s - %s",
+        default_message_color:   "white",
+        display_on_all_clients:  false,
+        display_on_all_sessions: false,
+        display_title:           false,
+        default_title_format:    "%s - %s",
+        line_separator:          " - ",
+        change_color:            true,
+        color_location:          "status-left-bg"
       }
 
       class Client
@@ -50,7 +51,13 @@ module Notiffany
 
         def clients
           return [@client] unless @client == :all
-          ttys = _capture("list-clients", "-F", "'\#{client_tty}'")
+
+          ttys = if options[:display_on_all_sessions]
+                   _capture("list-clients", "-F", "'\#{client_tty}'")
+                 else
+                   active_session = _capture("display-message", "-p", "'#S'")
+                   _capture("list-clients", "-F", "'\#{client_tty}'", "-t", active_session)
+                 end
           ttys = ttys.split(/\n/)
 
           # if user is running 'tmux -C' remove this client from list
