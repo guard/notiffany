@@ -35,6 +35,20 @@ module Notiffany
           expect(sheller).to receive(:run).with("tmux display 'foo'")
           subject.display_message("foo")
         end
+
+        context "when displaying on all clients" do
+          subject { described_class.new(:all) }
+
+          it "displays on every client" do
+            allow(sheller).to receive(:stdout).
+              with("tmux list-clients -F '\#{client_tty}'") do
+              "/dev/ttys001\n"
+            end
+
+            expect(sheller).to receive(:run).with("tmux display -c /dev/ttys001 'foo'")
+            subject.display_message("foo")
+          end
+        end
       end
 
       describe "#message_fg=" do
