@@ -67,7 +67,7 @@ module Notiffany
 
         def display_message(message)
           clients.each do |client|
-            args += ["-c", client.strip] if client
+            args = ["-c", client.strip] if client
             # TODO: should properly escape message here
             _run("display", *args, "'#{message}'")
           end
