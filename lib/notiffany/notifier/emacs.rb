@@ -18,6 +18,27 @@ module Notiffany
       class Client
         def initialize(options)
           @client = options[:client]
+
+          if available?
+            elisp = <<-EOF
+(if (fboundp 'notiffany-notify)
+    (print "Notiffany Emacs notifier: notiffany-notify is defined, using that")
+  (defun notiffany-notify (color bgcolor)
+    (unless (boundp 'notiffany-original-background)
+      (setq notiffany-original-background (face-background 'mode-line)))
+    (unless (boundp 'notiffany-original-foreground)
+      (setq notiffany-original-foreground (face-foreground 'mode-line)))
+    (set-face-attribute 'mode-line nil
+                        :background bgcolor
+                        :foreground color)
+    (run-at-time "10 sec" nil (lambda ()
+                                (message "resetting mode-line background to '%s'" notiffany-original-background)
+                                (message "resetting mode-line foreground to '%s'" notiffany-original-foreground)
+                                (set-face-attribute 'mode-line nil
+                                                    :background notiffany-original-background
+                                                    :foreground notiffany-original-foreground)))))
+EOF
+          end
         end
 
         def available?
@@ -26,9 +47,7 @@ module Notiffany
 
         def notify(color, bgcolor)
           elisp = <<-EOF.gsub(/\s+/, " ").strip
-            (set-face-attribute 'mode-line nil
-                 :background "#{bgcolor}"
-                 :foreground "#{color}")
+            (notiffany-notify "#{bgcolor}" "#{color}")
           EOF
           emacs_eval(elisp)
         end
