@@ -4,7 +4,7 @@ Notification library supporting popular notifiers, such as:
 - Growl
 - libnotify
 - TMux
-- Emacs
+- Emacs (see: https://github.com/guard/notiffany/wiki/Emacs-support)
 - rb-notifu
 - notifysend
 - gntp
