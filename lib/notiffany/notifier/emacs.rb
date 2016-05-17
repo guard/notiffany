@@ -1,5 +1,7 @@
-require "notiffany/notifier/base"
-require "shellany/sheller"
+require 'notiffany/notifier/base'
+require 'shellany/sheller'
+
+require 'notiffany/notifier/emacs/client'
 
 module Notiffany
   class Notifier
@@ -8,37 +10,18 @@ module Notiffany
     #
     class Emacs < Base
       DEFAULTS = {
-        client:    "emacsclient",
-        success:   "ForestGreen",
-        failed:    "Firebrick",
-        default:   "Black",
-        fontcolor: "White",
-      }
+        client:    'emacsclient',
+        success:   'ForestGreen',
+        failed:    'Firebrick',
+        default:   'Black',
+        fontcolor: 'White'
+      }.freeze
 
-      class Client
-        def initialize(options)
-          @client = options[:client]
-        end
-
-        def available?
-          emacs_eval({ 'ALTERNATE_EDITOR' =>'false' }, "'1'")
-        end
-
-        def notify(color, bgcolor)
-          elisp = <<-EOF.gsub(/\s+/, " ").strip
-            (set-face-attribute 'mode-line nil
-                 :background "#{bgcolor}"
-                 :foreground "#{color}")
-          EOF
-          emacs_eval(elisp)
-        end
-
-        private
-
-        def emacs_eval(env={}, code)
-          Shellany::Sheller.run(env, @client, "--eval", code)
-        end
-      end
+      DEFAULT_ELISP_ERB = <<EOF.freeze
+(set-face-attribute 'mode-line nil
+  :background "<%= bgcolor %>"
+  :foreground "<%= color %>")
+EOF
 
       private
 
@@ -47,8 +30,8 @@ module Notiffany
       end
 
       def _check_available(options)
-        return if Client.new(options).available?
-        fail UnavailableError, "Emacs client failed"
+        return if Client.new(options.merge(elisp_erb: "'1'")).available?
+        raise UnavailableError, 'Emacs client failed'
       end
 
       # Shows a system notification.
@@ -72,10 +55,12 @@ module Notiffany
       # @option opts [String, Integer] priority specify an int or named key
       #   (default is 0)
       #
-      def _perform_notify(_message, opts = {})
+      def _perform_notify(message, opts = {})
         color     = _emacs_color(opts[:type], opts)
         fontcolor = _emacs_color(:fontcolor, opts)
-        Client.new(opts).notify(fontcolor, color)
+
+        opts = opts.merge(elisp_erb: _erb_for(opts[:elisp_file]))
+        Client.new(opts).notify(fontcolor, color, message)
       end
 
       # Get the Emacs color for the notification type.
@@ -101,6 +86,11 @@ module Notiffany
       def _emacs_color(type, options = {})
         default = options.fetch(:default, DEFAULTS[:default])
         options.fetch(type.to_sym, default)
+      end
+
+      def _erb_for(filename)
+        return DEFAULT_ELISP_ERB unless filename
+        IO.read(::File.expand_path(filename))
       end
     end
   end

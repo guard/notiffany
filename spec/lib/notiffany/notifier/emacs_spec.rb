@@ -1,111 +1,148 @@
-require "notiffany/notifier/emacs"
+require 'notiffany/notifier/emacs'
 
-module Notiffany
-  RSpec.describe Notifier::Emacs::Client do
-    let(:sheller) { Shellany::Sheller }
-    subject { described_class.new({client: 'emacsclient'}) }
+RSpec.describe Notiffany::Notifier::Emacs do
+  let(:options) { {} }
 
-    before do
-      allow(sheller).to receive(:run) do |*args|
-        fail "stub me: #{sheller.class}(#{args.map(&:inspect) * ","})"
+  subject { described_class.new(options) }
+
+  let(:availability_command_result) { true }
+  let(:availability_checking_client) do
+    instance_double(
+      described_class::Client,
+      available?: availability_command_result
+    )
+  end
+
+  before do
+    allow(described_class::Client).to receive(:new) do |*args|
+      args_info = args.map(&:inspect) * ','
+      raise "stub me: #{described_class::Client}.new(#{args_info})"
+    end
+
+    allow(described_class::Client).to receive(:new)
+      .with(hash_including(elisp_erb: "'1'"))
+      .and_return(availability_checking_client)
+  end
+
+  before do
+    allow(File).to receive(:expand_path) do |*args|
+      raise "stub me: File.expand_path(#{args.map(&:inspect) * ','})"
+    end
+
+    allow(IO).to receive(:read) do |*args|
+      raise "stub me: IO.read(#{args.map(&:inspect) * ','})"
+    end
+  end
+
+  describe '#initialize' do
+    context 'when the client command works' do
+      let(:availability_command_result) { true }
+      it 'works' do
+        subject
       end
     end
 
-    describe "#available?" do
-      before do
-        allow(sheller).to receive(:run).with(
-          { 'ALTERNATE_EDITOR' => 'false' },
-          'emacsclient',
-          '--eval',
-          "'1'").and_return(result)
-      end
-
-      context "when the client command works" do
-        let(:result) { true }
-        it { is_expected.to be_available }
-      end
-
-      context "when the client commmand does not exist" do
-        let(:result) { nil }
-        it { is_expected.to_not be_available }
-      end
-
-      context "when the client command fails" do
-        let(:result) { false }
-        it { is_expected.to_not be_available }
+    context 'when the client command fails' do
+      let(:availability_command_result) { false }
+      it 'fails' do
+        expect { subject }
+          .to raise_error(Notiffany::Notifier::Base::UnavailableError)
       end
     end
   end
 
-  RSpec.describe Notifier::Emacs do
-    let(:options) { {} }
-    let(:result) { fail "set me first" }
-    let(:client) { instance_double(Notifier::Emacs::Client) }
-
-    subject { described_class.new(options) }
+  describe '#notify' do
+    let(:notifying_client) { instance_double(described_class::Client) }
 
     before do
-      allow(Notifier::Emacs::Client).to receive(:new).and_return(client)
-      allow(client).to receive(:available?).and_return(result)
+      allow(notifying_client).to receive(:notify)
+      default_elisp = { elisp_erb: described_class::DEFAULT_ELISP_ERB }
+      allow(described_class::Client).to receive(:new)
+        .with(hash_including(default_elisp))
+        .and_return(notifying_client)
     end
 
-    describe "#initialize" do
-      context "when the client command works" do
-        let(:result) { true }
-        it "works" do
-          subject
+    describe 'color' do
+      context 'when left default' do
+        context 'without overriding global options' do
+          it 'is set to default' do
+            expect(notifying_client).to receive(:notify)
+              .with('White', 'ForestGreen', anything)
+            subject.notify('any message')
+          end
         end
       end
 
-      context "when the client command fails" do
-        let(:result) { false }
-        it "fails" do
-          expect { subject }.to raise_error(Notifier::Base::UnavailableError)
+      context 'when set globally' do
+        let(:options) { { success: 'Pink', silent: true } }
+
+        context 'when no overring notification options' do
+          it 'is set to global value' do
+            expect(notifying_client).to receive(:notify)
+              .with('White', 'Pink', anything)
+            subject.notify('any message')
+          end
+        end
+      end
+
+      context 'when set during notification' do
+        describe 'for :success' do
+          let(:notification_options) { { success: 'Orange' } }
+          it 'is set from the notification value' do
+            expect(notifying_client).to receive(:notify)
+              .with('White', 'Orange', anything)
+            subject.notify('any message', notification_options)
+          end
+        end
+
+        describe 'for :pending' do
+          let(:notification_options) { { type: :pending, pending: 'Yellow' } }
+          it 'is set from the notification value' do
+            expect(notifying_client).to receive(:notify)
+              .with('White', 'Yellow', anything)
+            subject.notify('any message', notification_options)
+          end
         end
       end
     end
 
-    describe "#notify" do
-      let(:result) { "" }
+    context 'with no elisp file' do
+      let(:options) { {} }
+
+      it 'uses default elisp notification code' do
+        expected_elisp_erb = <<EOF
+(set-face-attribute 'mode-line nil
+  :background "<%= bgcolor %>"
+  :foreground "<%= color %>")
+EOF
+        expected = { elisp_erb: expected_elisp_erb }
+
+        expect(described_class::Client).to receive(:new)
+          .with(hash_including(expected))
+          .and_return(notifying_client)
+        subject.notify('any message')
+      end
+    end
+
+    context 'with elisp file' do
+      let(:options) { { elisp_file: '~/.my_elisp_script' } }
+
       before do
-        allow(client).to receive(:available?).and_return(true)
+        allow(File).to receive(:expand_path)
+          .with('~/.my_elisp_script')
+          .and_return('/foo/bar')
+
+        allow(IO).to receive(:read)
+          .with('/foo/bar')
+          .and_return('( print "hello, color is: <%= color %>" )')
       end
 
-      context "with options passed at initialization" do
-        let(:options) { { success: "Green", silent: true } }
-
-        it "uses these options by default" do
-          expect(client).to receive(:notify).with("White", "Green")
-          subject.notify("any message")
-        end
-
-        it "overwrites object options with passed options" do
-          expect(client).to receive(:notify).with("White", "LightGreen")
-          subject.notify("any message", success: "LightGreen")
-        end
-      end
-
-      describe "modeline color" do
-        context "when no color options are specified" do
-          it "is set to default color" do
-            expect(client).to receive(:notify).with("White", "ForestGreen")
-            subject.notify("any message")
-          end
-        end
-
-        context 'when a success color is specified' do
-          it "is set to success color" do
-            expect(client).to receive(:notify).with("White", "Orange")
-            subject.notify("any message", success: "Orange")
-          end
-        end
-
-        context 'when a pending color is specified for "pending" notifications' do
-          it "is set to pending color" do
-            expect(client).to receive(:notify).with("White", "Yellow")
-            subject.notify("any message", type: :pending, pending: "Yellow")
-          end
-        end
+      it 'passes evaluated erb to client' do
+        expected = { elisp_erb: '( print "hello, color is: <%= color %>" )' }
+        expect(described_class::Client).to receive(:new)
+          .with(hash_including(expected))
+          .and_return(notifying_client)
+        subject.notify('any message')
       end
     end
   end
