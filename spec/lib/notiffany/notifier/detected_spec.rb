@@ -5,7 +5,6 @@ module Notiffany
     RSpec.describe YamlEnvStorage do
       let(:subject) { YamlEnvStorage.new("notiffany_tests_foo") }
       describe "#notifiers" do
-
         context "when set to empty array" do
           before { subject.notifiers = [] }
           specify { expect(subject.notifiers).to be_empty }
@@ -51,7 +50,7 @@ module Notiffany
         end
       end
 
-      describe ".available" do
+      describe "#available" do
         context "with detected notifiers" do
           let(:available) do
             [
@@ -119,7 +118,7 @@ module Notiffany
         end
       end
 
-      describe ".detect" do
+      describe "#detect" do
         context "with some detected notifiers" do
           before do
             allow(env).to receive(:notifiers).and_return([])
@@ -157,7 +156,7 @@ module Notiffany
         end
       end
 
-      describe ".reset" do
+      describe "#reset" do
         before do
           allow(env).to receive(:notifiers=)
         end

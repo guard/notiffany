@@ -43,7 +43,7 @@ module Notiffany
   end
 
   class Notifier
-    NOTIFICATIONS_DISABLED = "Notifications disabled by GUARD_NOTIFY" +
+    NOTIFICATIONS_DISABLED = "Notifications disabled by GUARD_NOTIFY" \
       " environment variable"
 
     USING_NOTIFIER = "Notiffany is using %s to send notifications."

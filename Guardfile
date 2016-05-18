@@ -24,7 +24,7 @@
 #
 # and, you'll have to watch "config/Guardfile" instead of "Guardfile"
 #
-watch ("Guardfile") do
+watch("Guardfile") do
   UI.info "Exiting because Guard must be restarted for changes to take effect"
   exit 0
 end

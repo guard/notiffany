@@ -3,7 +3,7 @@ require "notiffany/notifier/growl"
 module Notiffany
   RSpec.describe Notifier::Growl do
     module FakeGrowl
-      def self.notify(message, opts)
+      def self.notify(_message, _opts)
       end
 
       def self.installed?
@@ -67,11 +67,11 @@ module Notiffany
           expect(growl).to receive(:notify).with(
             "Welcome!",
             hash_including(
-            sticky:   false,
-            priority: 0,
-            name:     "Notiffany",
-            title:    "Hello",
-            image:    "/tmp/welcome.png"
+              sticky:   false,
+              priority: 0,
+              name:     "Notiffany",
+              title:    "Hello",
+              image:    "/tmp/welcome.png"
             )
           )
 
@@ -82,12 +82,12 @@ module Notiffany
           expect(growl).to receive(:notify).with(
             "Welcome!",
             hash_including(
-            sticky:   false,
-            priority: 0,
-            name:     "Notiffany",
-            title:    "Welcome",
-            image:    "/tmp/welcome.png"
-          )
+              sticky:   false,
+              priority: 0,
+              name:     "Notiffany",
+              title:    "Welcome",
+              image:    "/tmp/welcome.png"
+            )
           )
 
           subject.notify("Welcome!",
@@ -101,11 +101,11 @@ module Notiffany
           expect(growl).to receive(:notify).with(
             "Welcome!",
             hash_including(
-            sticky:   false,
-            priority: 0,
-            name:     "Notiffany",
-            title:    "Welcome",
-            image:    "/tmp/welcome.png"
+              sticky:   false,
+              priority: 0,
+              name:     "Notiffany",
+              title:    "Welcome",
+              image:    "/tmp/welcome.png"
             )
           )
 
@@ -121,12 +121,12 @@ module Notiffany
           expect(growl).to receive(:notify).with(
             "Waiting for something",
             hash_including(
-            sticky:   true,
-            priority: 2,
-            name:     "Notiffany",
-            title:    "Waiting",
-            image:    "/tmp/wait.png"
-          )
+              sticky:   true,
+              priority: 2,
+              name:     "Notiffany",
+              title:    "Waiting",
+              image:    "/tmp/wait.png"
+            )
           )
 
           subject.notify(

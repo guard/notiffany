@@ -38,7 +38,7 @@ module Notiffany
 
       class UnsupportedPlatform < UnavailableError
         def initialize
-          super "Unsupported platform #{RbConfig::CONFIG["host_os"].inspect}"
+          super "Unsupported platform #{RbConfig::CONFIG['host_os'].inspect}"
         end
       end
 

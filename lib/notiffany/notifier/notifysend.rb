@@ -26,7 +26,7 @@ module Notiffany
       def _gem_name
         nil
       end
-      
+
       def _supported_hosts
         %w(linux linux-gnu freebsd openbsd sunos solaris)
       end
@@ -81,7 +81,7 @@ module Notiffany
       #
       def _to_arguments(command, supported, opts = {})
         opts.inject(command) do |cmd, (flag, value)|
-          supported.include?(flag) ? (cmd << "-#{ flag }" << value.to_s) : cmd
+          supported.include?(flag) ? (cmd << "-#{flag}" << value.to_s) : cmd
         end
       end
     end

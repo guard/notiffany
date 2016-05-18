@@ -19,8 +19,8 @@ module Notiffany
     # TODO: use a socket instead of passing env variables to child processes
     # (currently probably only used by guard-cucumber anyway)
     YamlEnvStorage = Nenv::Builder.build do
-      create_method(:notifiers=) { |data| YAML::dump(data || []) }
-      create_method(:notifiers) { |data| data ? YAML::load(data) : [] }
+      create_method(:notifiers=) { |data| YAML.dump(data || []) }
+      create_method(:notifiers) { |data| data ? YAML.load(data) : [] }
     end
 
     # @private api
@@ -37,9 +37,7 @@ module Notiffany
           @name = name
         end
 
-        def name
-          @name
-        end
+        attr_reader :name
 
         def message
           "Unknown notifier: #{@name.inspect}"

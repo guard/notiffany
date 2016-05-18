@@ -32,7 +32,7 @@ module Notiffany
       def _perform_notify(message, opts = {})
         first_line = message.sub(/^\n/, "").sub(/\n.*/m, "")
 
-        STDOUT.puts "\e]2;[#{ opts[:title] }] #{ first_line }\a"
+        STDOUT.puts "\e]2;[#{opts[:title]}] #{first_line}\a"
       end
     end
   end

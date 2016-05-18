@@ -34,7 +34,7 @@ module Notiffany
 
           it "checks if the binary is available" do
             expect(sheller).to receive(:stdout).with("which notify-send").
-                                       and_return("foo\n")
+              and_return("foo\n")
             subject
           end
         end
