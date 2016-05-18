@@ -13,4 +13,6 @@ end
 group :development do
   gem 'guard-rspec', "~> 4.6", require: false
   gem 'listen', "~> 3.1"
+  gem 'guard-rubocop', "~> 1.2", require: false
+  gem 'rubocop', '~> 0.40', require: false
 end
