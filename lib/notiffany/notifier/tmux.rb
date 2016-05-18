@@ -1,5 +1,8 @@
 require "notiffany/notifier/base"
-require "shellany/sheller"
+
+require "notiffany/notifier/tmux/client"
+require "notiffany/notifier/tmux/session"
+require "notiffany/notifier/tmux/notification"
 
 # TODO: this probably deserves a gem of it's own
 module Notiffany
@@ -26,135 +29,6 @@ module Notiffany
         change_color:           true,
         color_location:         "status-left-bg"
       }
-
-      class Client
-        CLIENT = "tmux"
-
-        class << self
-          def version
-            Float(_capture("-V")[/\d+\.\d+/])
-          end
-
-          def _capture(*args)
-            Shellany::Sheller.stdout(([CLIENT] + args).join(" "))
-          end
-
-          def _run(*args)
-            Shellany::Sheller.run(([CLIENT] + args).join(" "))
-          end
-        end
-
-        def initialize(client)
-          @client = client
-        end
-
-        def clients
-          return [@client] unless @client == :all
-          ttys = _capture("list-clients", "-F", "'\#{client_tty}'")
-          ttys = ttys.split(/\n/)
-
-          # if user is running 'tmux -C' remove this client from list
-          ttys.delete("(null)")
-          ttys
-        end
-
-        def set(key, value)
-          clients.each do |client|
-            args = client ? ["-t", client.strip] : nil
-            _run("set", "-q", *args, key, value)
-          end
-        end
-
-        def display_message(message)
-          clients.each do |client|
-            args = ["-c", client.strip] if client
-            # TODO: should properly escape message here
-            _run("display", *args, "'#{message}'")
-          end
-        end
-
-        def unset(key, value)
-          clients.each do |client|
-            _run(*_all_args_for(key, value, client))
-          end
-        end
-
-        def parse_options
-          output = _capture("show", "-t", @client)
-          Hash[output.lines.map { |line| _parse_option(line) }]
-        end
-
-        def message_fg=(color)
-          set("message-fg", color)
-        end
-
-        def message_bg=(color)
-          set("message-bg", color)
-        end
-
-        def display_time=(time)
-          set("display-time", time)
-        end
-
-        def title=(string)
-          # TODO: properly escape?
-          set("set-titles-string", "'#{string}'")
-        end
-
-        private
-
-        def _run(*args)
-          self.class._run(*args)
-        end
-
-        def _capture(*args)
-          self.class._capture(*args)
-        end
-
-        def _parse_option(line)
-          line.partition(" ").map(&:strip).reject(&:empty?)
-        end
-
-        def _all_args_for(key, value, client)
-          unset = value ? [] : %w(-u)
-          args = client ? ["-t", client.strip] : []
-          ["set", "-q", *unset, *args, key, *[value].compact]
-        end
-      end
-
-      class Session
-        def initialize
-          @options_store = {}
-
-          # NOTE: we are reading the settings of all clients
-          # - regardless of the :display_on_all_clients option
-
-          # Ideally, this should be done incrementally (e.g. if we start with
-          # "current" client and then override the :display_on_all_clients to
-          # true, only then the option store should be updated to contain
-          # settings of all clients
-          Client.new(:all).clients.each do |client|
-            @options_store[client] = {
-              "status-left-bg"  => nil,
-              "status-right-bg" => nil,
-              "status-left-fg"  => nil,
-              "status-right-fg" => nil,
-              "message-bg"      => nil,
-              "message-fg"      => nil,
-              "display-time"    => nil
-            }.merge(Client.new(client).parse_options)
-          end
-        end
-
-        def close
-          @options_store.each do |client, options|
-            options.each do |key, value|
-              Client.new(client).unset(key, value)
-            end
-          end
-          @options_store = nil
-        end
-      end
 
       class Error < RuntimeError
       end
@@ -227,117 +101,14 @@ module Notiffany
       #   message on all tmux clients or not
       #
       def _perform_notify(message, options = {})
-        change_color = options[:change_color]
         locations = Array(options[:color_location])
-        display_the_title = options[:display_title]
-        display_message = options[:display_message]
         type  = options[:type].to_s
         title = options[:title]
 
-        _colorize_locations(type, options, locations) if change_color
-        _display_title(type, title, message, options) if display_the_title
-
-        return unless display_message
-        _display_message(type, title, message, options)
-      end
-
-      # Displays a message in the title bar of the terminal.
-      #
-      # @param [String] title the notification title
-      # @param [String] message the notification message body
-      # @param [Hash] options additional notification library options
-      # @option options [String] success_message_format a string to use as
-      #   formatter for the success message.
-      # @option options [String] failed_message_format a string to use as
-      #   formatter for the failed message.
-      # @option options [String] pending_message_format a string to use as
-      #   formatter for the pending message.
-      # @option options [String] default_message_format a string to use as
-      #   formatter when no format per type is defined.
-      #
-      def _display_title(type, title, message, options = {})
-        format = "#{type}_title_format".to_sym
-        default_title_format = options[:default_title_format]
-        title_format   = options.fetch(format, default_title_format)
-        teaser_message = message.split("\n").first
-        display_title  = format(title_format, title, teaser_message)
-
-        Client.new(client(options)).title = display_title
-      end
-
-      # Displays a message in the status bar of tmux.
-      #
-      # @param [String] type the notification type. Either 'success',
-      #   'pending', 'failed' or 'notify'
-      # @param [String] title the notification title
-      # @param [String] message the notification message body
-      # @param [Hash] options additional notification library options
-      # @option options [Integer] timeout the amount of seconds to show the
-      #   message in the status bar
-      # @option options [String] success_message_format a string to use as
-      #   formatter for the success message.
-      # @option options [String] failed_message_format a string to use as
-      #   formatter for the failed message.
-      # @option options [String] pending_message_format a string to use as
-      #   formatter for the pending message.
-      # @option options [String] default_message_format a string to use as
-      #   formatter when no format per type is defined.
-      # @option options [String] success_message_color the success notification
-      #   foreground color name.
-      # @option options [String] failed_message_color the failed notification
-      #   foreground color name.
-      # @option options [String] pending_message_color the pending notification
-      #   foreground color name.
-      # @option options [String] default_message_color a notification
-      #   foreground color to use when no color per type is defined.
-      # @option options [String] line_separator a string to use instead of a
-      #   line-break.
-      #
-      def _display_message(type, title, message, opts = {})
-        message_color = _message_color_for(type, opts)
-        message = _message_for(type, title, message, opts)
-
-        cl = Client.new(client(opts))
-        cl.display_time = opts[:timeout] * 1000
-        cl.message_fg = message_color
-        cl.message_bg = _tmux_color(type, opts)
-        cl.display_message(message)
-      end
-
-      def client(options)
-        options[:display_on_all_clients] ? :all : nil
-      end
-
-      # TODO: extract these 5 methods below into a class
-      def _colorize_locations(type, options, locations)
-        color = _tmux_color(type, options)
-        locations.each do |location|
-          Client.new(client(options)).set(location, color)
-        end
-      end
-
-      def _message_format_for(type, opts)
-        default_format = opts[:default_message_format]
-        format = "#{type}_message_format".to_sym
-        opts.fetch(format, default_format)
-      end
-
-      def _message_color_for(type, opts)
-        color = "#{type}_message_color".to_sym
-        default_color = opts[:default_message_color]
-        opts.fetch(color, default_color)
-      end
-
-      def _message_for(type, title, message, opts)
-        message_format = _message_format_for(type, opts)
-        separator = opts[:line_separator]
-        formatted_message = message.split("\n").join(separator)
-        format(message_format, title, formatted_message)
-      end
-
-      def _tmux_color(type, opts = {})
-        type = type.to_sym
-        opts[type] || opts[:default]
+        tmux = Notification.new(type, options)
+        tmux.colorize(locations) if options[:change_color]
+        tmux.display_title(title, message) if options[:display_title]
+        tmux.display_message(title, message) if options[:display_message]
       end
 
       class << self
