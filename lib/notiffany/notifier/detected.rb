@@ -61,7 +61,7 @@ module Notiffany
         @supported.each do |group|
           group.detect do |name, _|
             begin
-              add(name, {})
+              _add(name, {})
               true
             rescue Notifier::Base::UnavailableError => e
               @logger.debug "Notiffany: #{name} not available (#{e.message})."
@@ -79,7 +79,17 @@ module Notiffany
         end
       end
 
+      # Called when user has notifier-specific config.
+      # Honor the config by warning if something is wrong
       def add(name, opts)
+        _add(name, opts)
+      rescue Notifier::Base::UnavailableError => e
+        @logger.warning("Notiffany: #{name} not available (#{e.message}).")
+      end
+
+      private
+
+      def _add(name, opts)
         @available = nil
         all = _notifiers
 
@@ -97,8 +107,6 @@ module Notiffany
         # so those options will be passed in next calls to notify()
         all.each { |item| item[:options] = opts if item[:name] == name }
       end
-
-      private
 
       def _to_module(name)
         @supported.each do |group|

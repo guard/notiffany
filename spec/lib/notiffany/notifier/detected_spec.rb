@@ -74,16 +74,46 @@ module Notiffany
         end
       end
 
-      describe ".add" do
+      describe "#add" do
         before do
-          allow(env).to receive(:notifiers).and_return([])
+          allow(env).to receive(:notifiers).and_return(notifiers)
         end
+
         context "with no detected notifiers" do
+          let(:notifiers) { [] }
           context "when unknown" do
             it "does not add the library" do
               expect(env).to_not receive(:notifiers=)
               expect { subject.add(:unknown, {}) }.
                 to raise_error(Notifier::Detected::UnknownNotifier)
+            end
+          end
+        end
+
+        context "with manually configured notifiers" do
+          let(:notifiers) { [] }
+
+          context "when not available" do
+            before do
+              allow(foo_mod).to receive(:new).
+                with(foo: :bar).
+                and_raise(Notifier::Base::UnavailableError, "something failed")
+              allow(logger).to receive(:warning)
+            end
+
+            it "does not add the library" do
+              expect(env).to_not receive(:notifiers=)
+              subject.add(:foo, foo: :bar)
+            end
+
+            it "does not raise an error" do
+              expect { subject.add(:foo, foo: :bar) }.to_not raise_error
+            end
+
+            it "shows a warning" do
+              expect(logger).to receive(:warning).
+                with("Notiffany: foo not available (something failed).")
+              subject.add(:foo, foo: :bar)
             end
           end
         end
