@@ -6,10 +6,14 @@ require 'notiffany/version'
 Gem::Specification.new do |spec|
   spec.name          = "notiffany"
   spec.version       = Notiffany::VERSION
-  spec.authors       = ["Cezary Baginski", "Rémy Coutable", "Thibaud Guillaume-Gentil"]
+  spec.authors       = [
+    "Cezary Baginski",
+    "Rémy Coutable",
+    "Thibaud Guillaume-Gentil"
+  ]
   spec.email         = ["cezary@chronomantic.net"]
 
-  spec.summary       = %q{Notifier library (extracted from Guard project)}
+  spec.summary       = 'Notifier library (extracted from Guard project)'
   spec.description   = <<-EOF
     Wrapper libray for most popular notification
     libraries such as Growl, Libnotify, Notifu
@@ -19,7 +23,7 @@ Gem::Specification.new do |spec|
   spec.license       = "MIT"
 
   git_files = `git ls-files -z`.split("\x0")
-  files = git_files.select { |f| /^lib\/.*$/ =~ f }
+  files = git_files.select { |f| %r{^lib/.*$} =~ f }
   files += %w(README.md LICENSE.txt)
 
   # skip the large images/guard.png

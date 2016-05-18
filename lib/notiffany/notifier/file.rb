@@ -32,8 +32,8 @@ module Notiffany
       def _perform_notify(message, opts = {})
         fail UnavailableError, "No :path option given" unless opts[:path]
 
-        format = opts[:format]
-        ::File.write(opts[:path], format % [opts[:type], opts[:title], message])
+        str = format(opts[:format], opts[:type], opts[:title], message)
+        ::File.write(opts[:path], str)
       end
 
       def _gem_name

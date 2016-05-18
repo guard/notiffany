@@ -3,7 +3,7 @@ require "notiffany/notifier/base"
 # TODO: no point in testing the base class, really
 module Notiffany
   RSpec.describe Notifier::Base do
-    let(:fake) { double ("fake_lib") }
+    let(:fake) { double "fake_lib" }
     let(:options) { {} }
     let(:os) { "solaris" }
 

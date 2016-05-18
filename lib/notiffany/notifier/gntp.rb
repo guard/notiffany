@@ -24,11 +24,12 @@ module Notiffany
       CLIENT_DEFAULTS = {
         host:     "127.0.0.1",
         password: "",
-        port:     23053
+        port:     23_053
       }
 
       def _supported_hosts
-        %w(darwin linux linux-gnu freebsd openbsd sunos solaris mswin mingw cygwin)
+        %w(darwin linux linux-gnu freebsd openbsd sunos solaris mswin mingw
+           cygwin)
       end
 
       def _gem_name

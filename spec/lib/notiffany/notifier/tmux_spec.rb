@@ -45,7 +45,8 @@ module Notiffany
               "/dev/ttys001\n"
             end
 
-            expect(sheller).to receive(:run).with("tmux display -c /dev/ttys001 'foo'")
+            expect(sheller).to receive(:run)
+              .with("tmux display -c /dev/ttys001 'foo'")
             subject.display_message("foo")
           end
         end
@@ -153,9 +154,7 @@ module Notiffany
       end
 
       after do
-        if described_class.send(:_session)
-          described_class.send(:_end_session)
-        end
+        described_class.send(:_end_session) if described_class.send(:_session)
       end
 
       describe "#initialize" do
@@ -176,7 +175,7 @@ module Notiffany
                 to raise_error(
                   Base::UnavailableError,
                   /way too old \(1.6\)/
-              )
+                )
             end
           end
         end
@@ -188,7 +187,7 @@ module Notiffany
               to raise_error(
                 Base::UnavailableError,
                 /only available inside a TMux session/
-            )
+              )
           end
         end
       end
@@ -470,7 +469,7 @@ module Notiffany
             {
               type: "pending",
               title: "any title",
-              display_message: true,
+              display_message: true
             }
           end
 

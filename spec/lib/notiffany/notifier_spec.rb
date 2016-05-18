@@ -13,7 +13,7 @@ module Notiffany
       let(name.to_sym) do
         class_double(
           "Notiffany::Notifier::Tmux",
-          name: name,
+          name: name
         )
       end
     end
@@ -109,8 +109,8 @@ module Notiffany
 
       context "with custom notifier config" do
         let(:env_enabled) { true }
-        let(:notifiers) { {foo: { bar: :baz} } }
-        let(:options) { { notifiers: notifiers} }
+        let(:notifiers) { { foo: { bar: :baz } } }
+        let(:options) { { notifiers: notifiers } }
 
         before do
           allow(detected).to receive(:available).and_return([])

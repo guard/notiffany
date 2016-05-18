@@ -5,7 +5,6 @@ module Notiffany
     RSpec.describe YamlEnvStorage do
       let(:subject) { YamlEnvStorage.new("notiffany_tests_foo") }
       describe "#notifiers" do
-
         context "when set to empty array" do
           before { subject.notifiers = [] }
           specify { expect(subject.notifiers).to be_empty }
@@ -51,7 +50,7 @@ module Notiffany
         end
       end
 
-      describe ".available" do
+      describe "#available" do
         context "with detected notifiers" do
           let(:available) do
             [
@@ -74,11 +73,13 @@ module Notiffany
         end
       end
 
-      describe ".add" do
+      describe "#add" do
         before do
-          allow(env).to receive(:notifiers).and_return([])
+          allow(env).to receive(:notifiers).and_return(notifiers)
         end
+
         context "with no detected notifiers" do
+          let(:notifiers) { [] }
           context "when unknown" do
             it "does not add the library" do
               expect(env).to_not receive(:notifiers=)
@@ -87,9 +88,37 @@ module Notiffany
             end
           end
         end
+
+        context "with manually configured notifiers" do
+          let(:notifiers) { [] }
+
+          context "when not available" do
+            before do
+              allow(foo_mod).to receive(:new).
+                with(foo: :bar).
+                and_raise(Notifier::Base::UnavailableError, "something failed")
+              allow(logger).to receive(:warning)
+            end
+
+            it "does not add the library" do
+              expect(env).to_not receive(:notifiers=)
+              subject.add(:foo, foo: :bar)
+            end
+
+            it "does not raise an error" do
+              expect { subject.add(:foo, foo: :bar) }.to_not raise_error
+            end
+
+            it "shows a warning" do
+              expect(logger).to receive(:warning).
+                with("Notiffany: foo not available (something failed).")
+              subject.add(:foo, foo: :bar)
+            end
+          end
+        end
       end
 
-      describe ".detect" do
+      describe "#detect" do
         context "with some detected notifiers" do
           before do
             allow(env).to receive(:notifiers).and_return([])
@@ -127,7 +156,7 @@ module Notiffany
         end
       end
 
-      describe ".reset" do
+      describe "#reset" do
         before do
           allow(env).to receive(:notifiers=)
         end

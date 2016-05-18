@@ -88,6 +88,5 @@ module Notiffany
         end
       end
     end
-
   end
 end
