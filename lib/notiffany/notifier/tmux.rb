@@ -75,12 +75,7 @@ module Notiffany
 
         def unset(key, value)
           clients.each do |client|
-            args = client ? ["-t", client.strip] : []
-            if value
-              _run("set", "-q", *args, key, value)
-            else
-              _run("set", "-q", "-u", *args, key)
-            end
+            _run(*_all_args_for(key, value, client))
           end
         end
 
@@ -118,6 +113,12 @@ module Notiffany
 
         def _parse_option(line)
           line.partition(" ").map(&:strip).reject(&:empty?)
+        end
+
+        def _all_args_for(key, value, client)
+          unset = value ? [] : %w(-u)
+          args = client ? ["-t", client.strip] : []
+          ["set", "-q", *unset, *args, key, *[value].compact]
         end
       end
 
@@ -233,13 +234,7 @@ module Notiffany
         type  = options[:type].to_s
         title = options[:title]
 
-        if change_color
-          color = _tmux_color(type, options)
-          locations.each do |location|
-            Client.new(client(options)).set(location, color)
-          end
-        end
-
+        _colorize_locations(type, options, locations) if change_color
         _display_title(type, title, message, options) if display_the_title
 
         return unless display_message
@@ -265,7 +260,7 @@ module Notiffany
         default_title_format = options[:default_title_format]
         title_format   = options.fetch(format, default_title_format)
         teaser_message = message.split("\n").first
-        display_title  = title_format % [title, teaser_message]
+        display_title  = format(title_format, title, teaser_message)
 
         Client.new(client(options)).title = display_title
       end
@@ -299,56 +294,67 @@ module Notiffany
       #   line-break.
       #
       def _display_message(type, title, message, opts = {})
-        default_format = opts[:default_message_format]
-        default_color = opts[:default_message_color]
-        display_time = opts[:timeout]
-        separator = opts[:line_separator]
-
-        format = "#{type}_message_format".to_sym
-        message_format = opts.fetch(format, default_format)
-
-        color = "#{type}_message_color".to_sym
-        message_color = opts.fetch(color, default_color)
-
-        color = _tmux_color(type, opts)
-        formatted_message = message.split("\n").join(separator)
-        msg = message_format % [title, formatted_message]
+        message_color = _message_color_for(type, opts)
+        message = _message_for(type, title, message, opts)
 
         cl = Client.new(client(opts))
-        cl.display_time = display_time * 1000
+        cl.display_time = opts[:timeout] * 1000
         cl.message_fg = message_color
-        cl.message_bg = color
-        cl.display_message(msg)
+        cl.message_bg = _tmux_color(type, opts)
+        cl.display_message(message)
       end
 
-      # Get the Tmux color for the notification type.
-      # You can configure your own color by overwriting the defaults.
-      #
-      # @param [String] type the notification type
-      # @return [String] the name of the emacs color
-      #
+      def client(options)
+        options[:display_on_all_clients] ? :all : nil
+      end
+
+      # TODO: extract these 5 methods below into a class
+      def _colorize_locations(type, options, locations)
+        color = _tmux_color(type, options)
+        locations.each do |location|
+          Client.new(client(options)).set(location, color)
+        end
+      end
+
+      def _message_format_for(type, opts)
+        default_format = opts[:default_message_format]
+        format = "#{type}_message_format".to_sym
+        opts.fetch(format, default_format)
+      end
+
+      def _message_color_for(type, opts)
+        color = "#{type}_message_color".to_sym
+        default_color = opts[:default_message_color]
+        opts.fetch(color, default_color)
+      end
+
+      def _message_for(type, title, message, opts)
+        message_format = _message_format_for(type, opts)
+        separator = opts[:line_separator]
+        formatted_message = message.split("\n").join(separator)
+        format(message_format, title, formatted_message)
+      end
+
       def _tmux_color(type, opts = {})
         type = type.to_sym
         opts[type] || opts[:default]
       end
 
-      def self._start_session
-        fail "Already turned on!" if @session
-        @session = Session.new
-      end
+      class << self
+        def _start_session
+          fail "Already turned on!" if @session
+          @session = Session.new
+        end
 
-      def self._end_session
-        fail "Already turned off!" unless @session || nil
-        @session.close
-        @session = nil
-      end
+        def _end_session
+          fail "Already turned off!" unless @session
+          @session.close
+          @session = nil
+        end
 
-      def self._session
-        @session
-      end
-
-      def client(options)
-        options[:display_on_all_clients] ? :all : nil
+        def _session
+          @session
+        end
       end
     end
   end
