@@ -2,9 +2,9 @@ require "yaml"
 require "rbconfig"
 require "pathname"
 require "nenv"
-require "logger"
 
 require "notiffany/notifier/detected"
+require "notiffany/notifier/config"
 
 module Notiffany
   # The notifier handles sending messages to different notifiers. Currently the
@@ -43,8 +43,6 @@ module Notiffany
   end
 
   class Notifier
-    DEFAULTS = { notify: true }
-
     NOTIFICATIONS_DISABLED = "Notifications disabled by GUARD_NOTIFY" +
       " environment variable"
 
@@ -79,35 +77,16 @@ module Notiffany
     class NotServer < RuntimeError
     end
 
+    attr_reader :config
+
     def initialize(opts)
-      @env_namespace = opts.fetch(:namespace, "notiffany")
-      @logger = opts.fetch(:logger) do
-        Logger.new($stderr).tap { |l| l.level = Logger::WARN }
-      end
-
-
-      @detected = Detected.new(SUPPORTED, @env_namespace, @logger)
+      @config = Config.new(opts)
+      @detected = Detected.new(SUPPORTED, config.env_namespace, config.logger)
       return if _client?
 
-      _env.notify_pid = $$
-
-      fail "Already connected" if active?
-
-      options = DEFAULTS.merge(opts)
-      return unless enabled? && options[:notify]
-
-      notifiers = opts.fetch(:notifiers, {})
-      if notifiers.any?
-        notifiers.each do |name, notifier_options|
-          @detected.add(name, notifier_options)
-        end
-      else
-        @detected.detect
-      end
-
-      turn_on
+      _activate
     rescue Detected::NoneAvailableError => e
-      @logger.info e.to_s
+      config.logger.info e.to_s
     end
 
     def disconnect
@@ -133,13 +112,7 @@ module Notiffany
 
       fail "Already active!" if active?
 
-      silent = options[:silent]
-
-      @detected.available.each do |obj|
-        @logger.debug(format(USING_NOTIFIER, obj.title)) unless silent
-        obj.turn_on if obj.respond_to?(:turn_on)
-      end
-
+      _turn_on_notifiers(options)
       _env.notify_active = true
     end
 
@@ -191,7 +164,7 @@ module Notiffany
     private
 
     def _env
-      @environment ||= Env.new(@env_namespace)
+      @environment ||= Env.new(config.env_namespace)
     end
 
     def _check_server!
@@ -200,6 +173,38 @@ module Notiffany
 
     def _client?
       (pid = _env.notify_pid) && (pid != $$)
+    end
+
+    def _detect_or_add_notifiers
+      notifiers = config.notifiers
+      return @detected.detect if notifiers.empty?
+
+      notifiers.each do |name, notifier_options|
+        @detected.add(name, notifier_options)
+      end
+    end
+
+    def _notification_wanted?
+      enabled? && config.notify?
+    end
+
+    def _activate
+      _env.notify_pid = $$
+
+      fail "Already connected" if active?
+
+      return unless _notification_wanted?
+
+      _detect_or_add_notifiers
+      turn_on
+    end
+
+    def _turn_on_notifiers(options)
+      silent = options[:silent]
+      @detected.available.each do |obj|
+        config.logger.debug(format(USING_NOTIFIER, obj.title)) unless silent
+        obj.turn_on if obj.respond_to?(:turn_on)
+      end
     end
   end
 end
