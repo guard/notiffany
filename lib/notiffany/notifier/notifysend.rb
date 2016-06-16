@@ -32,7 +32,9 @@ module Notiffany
       end
 
       def _check_available(_opts = {})
-        return true unless Shellany::Sheller.stdout("which notify-send").empty?
+        which = Shellany::Sheller.stdout("which notify-send")
+
+        return true unless which.nil? || which.empty?
 
         fail UnavailableError, "libnotify-bin package is not installed"
       end

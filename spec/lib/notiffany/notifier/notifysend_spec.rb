@@ -32,10 +32,23 @@ module Notiffany
         context "host is supported" do
           let(:os) { "linux" }
 
-          it "checks if the binary is available" do
-            expect(sheller).to receive(:stdout).with("which notify-send").
-              and_return("foo\n")
-            subject
+          describe 'check_available' do
+            it "checks if the binary is available" do
+              expect(sheller).to receive(:stdout).with("which notify-send").
+                and_return("foo\n")
+              subject
+            end
+
+            context 'binary check returns nil' do
+              before do
+                allow(sheller).to receive(:stdout).with("which notify-send").
+                  and_return(nil)
+              end
+
+              it 'should raise an UnavailableError' do
+                expect { subject }.to raise_error(Base::UnavailableError)
+              end
+            end
           end
         end
       end
