@@ -60,6 +60,26 @@ notifier.turn_on
 notifier.toggle
 ```
 
+### Customizing options
+
+Options vary on the notifier type. The full list is here: https://github.com/guard/notiffany/tree/master/lib/notiffany/notifier
+
+Currently, only TMux has "dynamic options". (Open an issue if you need this for other plugins).
+
+"Dynamic options" means that you can have custom options (and custom defaults) for custom notifications.
+
+Currently, the main notification types are: `success`, `pending`, `failed` and `notify`
+
+For example, the default message format for TMux is: `default_message_format: "%s - %s"`
+
+If you send a notification `success`, it will look for `success_message_format` and if that setting isn't available, it will fall back to `default_message_format`.
+
+This means you can set colors for any notification type, e.g. you can set `foo_message_color`, for notifications of type `foo`.
+
+Ideally in the future this would allow you to send custom notifications with custom icons, e.g. `foo_icon` which has a default value of `default_icon` for plugins that show icons, etc.
+
+ 
+
 ## Contributing
 
 1. Fork it ( https://github.com/[my-github-username]/notiffany/fork )
