@@ -9,7 +9,8 @@ module Notiffany
 
         class << self
           def version
-            Float(_capture("-V")[/\d+\.\d+/])
+            v = _capture("-V")[/(\d+\.\d+)|master/]
+            v == "master" ? Float::MAX : Float(v)
           end
 
           def _capture(*args)
