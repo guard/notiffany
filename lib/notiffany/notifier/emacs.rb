@@ -36,11 +36,7 @@ EOF
 
       # Shows a system notification.
       #
-      # @param [String] type the notification type. Either 'success',
-      #   'pending', 'failed' or 'notify'
-      # @param [String] title the notification title
       # @param [String] message the notification message body
-      # @param [String] image the path to the notification image
       # @param [Hash] opts additional notification library options
       # @option opts [String] success the color to use for success
       #   notifications (default is 'ForestGreen')
