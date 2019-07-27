@@ -11,6 +11,17 @@ module Notiffany
         stub_const("Shellany::Sheller", sheller)
       end
 
+      describe ".version" do
+        context "when tmux is not installed" do
+          it "fails" do
+            allow(sheller).to receive(:stdout).and_return('')
+            expect do
+              described_class.version
+            end.to raise_error(Base::UnavailableError)
+          end
+        end
+      end
+
       describe "#clients" do
         context "when :all is given" do
           subject { described_class.new(:all) }
@@ -175,6 +186,18 @@ module Notiffany
                 to raise_error(
                   Base::UnavailableError,
                   /way too old \(1.6\)/
+                )
+            end
+          end
+
+          context "without tmux" do
+            it "fails" do
+              allow(Tmux::Client).to receive(:version).
+                and_raise(Base::UnavailableError, "Could not find tmux")
+              expect { subject }.
+                to raise_error(
+                  Base::UnavailableError,
+                  "Could not find tmux"
                 )
             end
           end
