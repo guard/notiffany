@@ -9,7 +9,11 @@ module Notiffany
 
         class << self
           def version
-            Float(_capture("-V")[/\d+\.\d+/])
+            begin
+              Float(_capture("-V")[/\d+\.\d+/])
+            rescue TypeError
+              raise Base::UnavailableError, "Could not find tmux"
+            end
           end
 
           def _capture(*args)
