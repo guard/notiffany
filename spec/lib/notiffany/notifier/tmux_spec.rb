@@ -14,7 +14,16 @@ module Notiffany
       describe ".version" do
         context "when tmux is not installed" do
           it "fails" do
-            allow(sheller).to receive(:stdout).and_return('')
+            allow(sheller).to receive(:stdout).and_return(nil)
+            expect do
+              described_class.version
+            end.to raise_error(Base::UnavailableError)
+          end
+        end
+
+        context "when 'tmux -v' doesn't contain float-like string" do
+          it "fails" do
+            allow(sheller).to receive(:stdout).and_return('master')
             expect do
               described_class.version
             end.to raise_error(Base::UnavailableError)
