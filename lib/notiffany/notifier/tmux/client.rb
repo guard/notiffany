@@ -11,7 +11,7 @@ module Notiffany
           def version
             begin
               Float(_capture("-V")[/\d+\.\d+/])
-            rescue TypeError
+            rescue NoMethodError, TypeError
               raise Base::UnavailableError, "Could not find tmux"
             end
           end
