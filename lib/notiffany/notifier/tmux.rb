@@ -14,10 +14,10 @@ module Notiffany
 
       DEFAULTS = {
         tmux_environment:       "TMUX",
-        success:                "green",
-        failed:                 "red",
-        pending:                "yellow",
-        default:                "green",
+        success:                "bg=green",
+        failed:                 "bg=red",
+        pending:                "bg=yellow",
+        default:                "bg=green",
         timeout:                5,
         display_message:        false,
         default_message_format: "%s - %s",
@@ -27,7 +27,7 @@ module Notiffany
         default_title_format:   "%s - %s",
         line_separator:         " - ",
         change_color:           true,
-        color_location:         "status-left-bg"
+        color_location:         "status-left-style"
       }
 
       class Error < RuntimeError
