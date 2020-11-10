@@ -145,13 +145,12 @@ module Notiffany
     end
 
     RSpec.describe Tmux do
-      let(:tmux_version) { 1.7 }
+      let(:tmux_version) { 1.9 }
 
       let(:options) { {} }
       let(:os) { "solaris" }
       let(:tmux_env) { true }
       subject { described_class.new(options) }
-      let(:version) { 1.7 }
 
       let(:client) { instance_double(Tmux::Client) }
       let(:session) { instance_double(Tmux::Session) }
@@ -165,7 +164,7 @@ module Notiffany
         allow(ENV).to receive(:key?).with("TMUX").and_return(tmux_env)
 
         allow(Tmux::Client).to receive(:new).and_return(client)
-        allow(Tmux::Client).to receive(:version).and_return(version)
+        allow(Tmux::Client).to receive(:version).and_return(tmux_version)
 
         allow(Tmux::Session).to receive(:new).and_return(session)
         allow(session).to receive(:close)
@@ -182,19 +181,19 @@ module Notiffany
           let(:tmux_env) { true }
 
           context "with a recent version of tmux" do
-            let(:version) { 1.8 }
+            let(:tmux_version) { 2.0 }
             it "works" do
               subject
             end
           end
 
           context "with an outdated version of tmux" do
-            let(:version) { 1.6 }
+            let(:tmux_version) { 1.8 }
             it "fails" do
               expect { subject }.
                 to raise_error(
                   Base::UnavailableError,
-                  /way too old \(1.6\)/
+                  /way too old \(1.8\)/
                 )
             end
           end

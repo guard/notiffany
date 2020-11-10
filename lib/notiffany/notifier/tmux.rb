@@ -67,7 +67,7 @@ module Notiffany
         fail Error, ERROR_NOT_INSIDE_TMUX unless ENV.key?(var_name)
 
         version = Client.version
-        fail Error, format(ERROR_ANCIENT_TMUX, version) if version < 1.7
+        fail Error, format(ERROR_ANCIENT_TMUX, version) if version < 1.9
 
         true
       rescue Error => e
