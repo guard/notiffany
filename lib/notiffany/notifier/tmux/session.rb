@@ -15,13 +15,11 @@ module Notiffany
           # settings of all clients
           Client.new(:all).clients.each do |client|
             @options_store[client] = {
-              "status-left-bg"  => nil,
-              "status-right-bg" => nil,
-              "status-left-fg"  => nil,
-              "status-right-fg" => nil,
-              "message-bg"      => nil,
-              "message-fg"      => nil,
-              "display-time"    => nil
+              "status-left-style"  => nil,
+              "status-right-style" => nil,
+              "message-bg"         => nil,
+              "message-fg"         => nil,
+              "display-time"       => nil
             }.merge(Client.new(client).parse_options)
           end
         end

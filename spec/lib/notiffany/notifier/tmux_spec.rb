@@ -131,10 +131,8 @@ module Notiffany
         end
 
         it "restores the tmux options" do
-          allow(tty).to receive(:unset).with("status-left-bg", nil)
-          allow(tty).to receive(:unset).with("status-left-fg", nil)
-          allow(tty).to receive(:unset).with("status-right-bg", nil)
-          allow(tty).to receive(:unset).with("status-right-fg", nil)
+          allow(tty).to receive(:unset).with("status-left-style", nil)
+          allow(tty).to receive(:unset).with("status-right-style", nil)
           allow(tty).to receive(:unset).with("message-bg", nil)
           allow(tty).to receive(:unset).with("message-fg", nil)
           allow(tty).to receive(:unset).with("display-time", nil)
@@ -145,13 +143,12 @@ module Notiffany
     end
 
     RSpec.describe Tmux do
-      let(:tmux_version) { 1.7 }
+      let(:tmux_version) { 1.9 }
 
       let(:options) { {} }
       let(:os) { "solaris" }
       let(:tmux_env) { true }
       subject { described_class.new(options) }
-      let(:version) { 1.7 }
 
       let(:client) { instance_double(Tmux::Client) }
       let(:session) { instance_double(Tmux::Session) }
@@ -165,7 +162,7 @@ module Notiffany
         allow(ENV).to receive(:key?).with("TMUX").and_return(tmux_env)
 
         allow(Tmux::Client).to receive(:new).and_return(client)
-        allow(Tmux::Client).to receive(:version).and_return(version)
+        allow(Tmux::Client).to receive(:version).and_return(tmux_version)
 
         allow(Tmux::Session).to receive(:new).and_return(session)
         allow(session).to receive(:close)
@@ -182,19 +179,19 @@ module Notiffany
           let(:tmux_env) { true }
 
           context "with a recent version of tmux" do
-            let(:version) { 1.8 }
+            let(:tmux_version) { 2.0 }
             it "works" do
               subject
             end
           end
 
           context "with an outdated version of tmux" do
-            let(:version) { 1.6 }
+            let(:tmux_version) { 1.8 }
             it "fails" do
               expect { subject }.
                 to raise_error(
                   Base::UnavailableError,
-                  /way too old \(1.6\)/
+                  /way too old \(1.8\)/
                 )
             end
           end
@@ -226,7 +223,7 @@ module Notiffany
 
       describe "#notify" do
         before do
-          allow(client).to receive(:set).with("status-left-bg", anything)
+          allow(client).to receive(:set).with("status-left-style", anything)
           allow(client).to receive(:display_time=)
           allow(client).to receive(:message_fg=)
           allow(client).to receive(:message_bg=)
@@ -235,75 +232,75 @@ module Notiffany
 
         context "with options passed at initialization" do
           let(:options) do
-            { success: "rainbow",
+            { success: "bg=rainbow",
               silent: true,
-              starting: "vanilla" }
+              starting: "bg=vanilla" }
           end
 
           it "uses these options by default" do
-            expect(client).to receive(:set).with("status-left-bg", "rainbow")
+            expect(client).to receive(:set).with("status-left-style", "bg=rainbow")
             subject.notify("any message", type: :success)
           end
 
           it "overwrites object options with passed options" do
-            expect(client).to receive(:set).with("status-left-bg", "black")
-            subject.notify("any message", type: :success, success: "black")
+            expect(client).to receive(:set).with("status-left-style", "bg=black")
+            subject.notify("any message", type: :success, success: "bg=black")
           end
 
           it "uses the initialization options for custom types by default" do
-            expect(client).to receive(:set).with("status-left-bg", "vanilla")
+            expect(client).to receive(:set).with("status-left-style", "bg=vanilla")
             subject.notify("any message", type: :starting)
           end
         end
 
-        it "sets the tmux status bar color to green on success" do
-          expect(client).to receive(:set).with("status-left-bg", "green")
+        it "sets the tmux status bar background color to green on success" do
+          expect(client).to receive(:set).with("status-left-style", "bg=green")
           subject.notify("any message", type: :success)
         end
 
-        context "when success: black is passed in as an option" do
-          let(:options) { { success: "black" } }
+        context "when success: bg=black is passed in as an option" do
+          let(:options) { { success: "bg=black" } }
 
-          it "on success it sets the tmux status bar color to black" do
-            expect(client).to receive(:set).with("status-left-bg", "black")
+          it "on success it sets the tmux status bar background color to black" do
+            expect(client).to receive(:set).with("status-left-style", "bg=black")
             subject.notify("any message", options.merge(type: :success))
           end
         end
 
-        it "sets the tmux status bar color to red on failure" do
-          expect(client).to receive(:set).with("status-left-bg", "red")
+        it "sets the tmux status bar background color to red on failure" do
+          expect(client).to receive(:set).with("status-left-style", "bg=red")
           subject.notify("any message", type: :failed)
         end
 
-        it "should set the tmux status bar color to yellow on pending" do
-          expect(client).to receive(:set).with("status-left-bg", "yellow")
+        it "should set the tmux status bar background color to yellow on pending" do
+          expect(client).to receive(:set).with("status-left-style", "bg=yellow")
           subject.notify("any message", type: :pending)
         end
 
-        it "sets the tmux status bar color to green on notify" do
-          expect(client).to receive(:set).with("status-left-bg", "green")
+        it "sets the tmux status bar background color to green on notify" do
+          expect(client).to receive(:set).with("status-left-style", "bg=green")
           subject.notify("any message", type: :notify)
         end
 
-        it "sets the tmux status bar color to default color on a custom type" do
-          expect(client).to receive(:set).with("status-left-bg", "black")
-          subject.notify("any message", type: :custom, default: "black")
+        it "sets the tmux status bar background color to default color on a custom type" do
+          expect(client).to receive(:set).with("status-left-style", "bg=black")
+          subject.notify("any message", type: :custom, default: "bg=black")
         end
 
-        it "sets the tmux status bar color to default color on a custom type" do
-          expect(client).to receive(:set).with("status-left-bg", "green")
+        it "sets the tmux status bar background color to default color on a custom type" do
+          expect(client).to receive(:set).with("status-left-style", "bg=green")
           subject.notify("any message", type: :custom)
         end
 
-        it "sets the tmux status bar color to passed color on a custom type" do
-          expect(client).to receive(:set).with("status-left-bg", "black")
-          subject.notify("any message", type: :custom, custom: "black")
+        it "sets the tmux status bar background color to passed color on a custom type" do
+          expect(client).to receive(:set).with("status-left-style", "bg=black")
+          subject.notify("any message", type: :custom, custom: "bg=black")
         end
 
         context "when right status bar is passed in as an option" do
-          it "should set the right tmux status bar color on success" do
-            expect(client).to receive(:set).with("status-right-bg", "green")
-            subject.notify("any message", color_location: "status-right-bg")
+          it "should set the right tmux status bar background color on success" do
+            expect(client).to receive(:set).with("status-right-style", "bg=green")
+            subject.notify("any message", color_location: "status-right-style")
           end
         end
 
@@ -338,12 +335,12 @@ module Notiffany
 
         context "when color_location is passed with an array" do
           let(:options) do
-            { color_location: %w(status-left-bg pane-border-fg) }
+            { color_location: %w(status-left-style pane-border-style) }
           end
 
           it "should set the color on multiple tmux settings" do
-            expect(client).to receive(:set).with("status-left-bg", "green")
-            expect(client).to receive(:set).with("pane-border-fg", "green")
+            expect(client).to receive(:set).with("status-left-style", "bg=green")
+            expect(client).to receive(:set).with("pane-border-style", "bg=green")
             subject.notify("any message", options)
           end
         end
@@ -360,7 +357,7 @@ module Notiffany
 
           before do
             allow(client).to receive(:title=)
-            allow(client).to receive(:set).with("status-left-bg", anything)
+            allow(client).to receive(:set).with("status-left-style", anything)
           end
 
           it "displays the title" do
@@ -485,7 +482,7 @@ module Notiffany
           end
 
           it "sets the background color" do
-            allow(client).to receive(:set).with("status-left-bg", :blue)
+            allow(client).to receive(:set).with("status-left-style", :blue)
             allow(client).to receive(:message_bg=).with("blue")
 
             subject.notify(
@@ -550,7 +547,7 @@ module Notiffany
           end
 
           before do
-            allow(client).to receive(:set).with("status-left-bg", anything)
+            allow(client).to receive(:set).with("status-left-style", anything)
             allow(client).to receive(:message_fg=)
             allow(client).to receive(:message_bg=)
             allow(client).to receive(:display_message)
