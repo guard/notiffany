@@ -61,7 +61,13 @@ module Notiffany
           icon: opts[:image]
         }.merge(opts)
 
+        begin
         _gntp_client(opts).notify(opts)
+        rescue Errno::EACCES, Errno::EADDRINUSE, Errno::EADDRNOTAVAIL, Errno::EAFNOSUPPORT, Errno::EBADF, 
+               Errno::EDESTADDRREQ, Errno::EFAULT, Errno::EINVAL, Errno::EIO, Errno::EISDIR, Errno::ELOOP, 
+               Errno::ENAMETOOLLONG, Errno::ENAMETOOLONG, Errno::ENETDOWN, Errno::ENOBUFS, Errno::ENOENT, 
+               Errno::ENOSR, Errno::ENOTDIR, Errno::ENOTSOCK, Errno::EOPNOTSUPP, Errno::EROFS => _e
+        end
       end
 
       private
