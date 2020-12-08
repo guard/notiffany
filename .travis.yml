@@ -1,5 +1,8 @@
 language: ruby
 bundler_args: --without development
+arch:
+  - amd64
+  - ppc64le
 rvm:
   - ruby-head
   - 2.3.8
