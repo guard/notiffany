@@ -95,7 +95,7 @@ module Notiffany
           context "when not available" do
             before do
               allow(foo_mod).to receive(:new).
-                with(foo: :bar).
+                with({ foo: :bar }).
                 and_raise(Notifier::Base::UnavailableError, "something failed")
               allow(logger).to receive(:warning)
             end

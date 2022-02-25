@@ -144,11 +144,13 @@ module Notiffany
         it "passes options only Growl can handle" do
           expect(growl).to receive(:notify).with(
             "Foo",
-            sticky:   true,
-            priority: 2,
-            name:     "Notiffany",
-            title:    "Waiting",
-            image:    "/tmp/wait.png"
+            {
+              sticky:   true,
+              priority: 2,
+              name:     "Notiffany",
+              title:    "Waiting",
+              image:    "/tmp/wait.png"
+            }
           )
 
           subject.notify(

@@ -37,7 +37,7 @@ module Notiffany
 
         it "uses these options by default" do
           expect(TerminalNotifier::Guard).to receive(:execute).
-            with(false, title: "Hello", type: :success, message: "any message")
+            with(false, { title: "Hello", type: :success, message: "any message" })
 
           subject.notify("any message")
         end
@@ -46,9 +46,12 @@ module Notiffany
           expect(::TerminalNotifier::Guard).to receive(:execute).
             with(
               false,
-              title: "Welcome",
-              type: :success,
-              message: "any message")
+              {
+                title: "Welcome",
+                type: :success,
+                message: "any message"
+              }
+            )
 
           subject.notify("any message", title: "Welcome")
         end
@@ -56,20 +59,28 @@ module Notiffany
 
       it "should call the notifier." do
         expect(::TerminalNotifier::Guard).to receive(:execute).
-          with(false,
-               title: "any title",
-               type: :success,
-               message: "any message")
+          with(
+            false,
+            {
+              title: "any title",
+              type: :success,
+              message: "any message"
+            }
+          )
 
         subject.notify("any message", title: "any title")
       end
 
       it "should allow the title to be customized" do
         expect(::TerminalNotifier::Guard).to receive(:execute).
-          with(false,
-               title: "any title",
-               message: "any message",
-               type: :error)
+          with(
+            false,
+            {
+              title: "any title",
+              message: "any message",
+              type: :error
+            }
+          )
 
         subject.notify("any message", type: :error, title: "any title")
       end
@@ -77,10 +88,14 @@ module Notiffany
       context "without a title set" do
         it "should show the app name in the title" do
           expect(::TerminalNotifier::Guard).to receive(:execute).
-            with(false,
-                 title: "FooBar Success",
-                 type: :success,
-                 message: "any message")
+            with(
+              false,
+              {
+                title: "FooBar Success",
+                type: :success,
+                message: "any message"
+              }
+            )
 
           # TODO: why would anyone set the title explicitly to nil? and also
           # expect it to be set to a default value?
