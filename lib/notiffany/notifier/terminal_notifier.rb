@@ -17,7 +17,7 @@ module Notiffany
         " on Mac OS X 10.8 and later."
 
       def _supported_hosts
-        %w(darwin)
+        %w(darwin darwin21)
       end
 
       def _gem_name
