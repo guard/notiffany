@@ -143,7 +143,7 @@ module Notiffany
 
               context "when available" do
                 it "adds the notifier to the notifications" do
-                  expect(detected).to receive(:add).with(:foo, bar: :baz)
+                  expect(detected).to receive(:add).with(:foo, { bar: :baz })
                   subject
                 end
               end
@@ -181,7 +181,7 @@ module Notiffany
               context "when available" do
                 it "adds the notifier to the notifications" do
                   expect(detected).to receive(:add).
-                    with(:foo, bar: :baz)
+                    with(:foo, { bar: :baz })
                   subject
                 end
               end
@@ -333,8 +333,8 @@ module Notiffany
             end
 
             it "sends notifications" do
-              expect(foo_object).to receive(:notify).with("Hello", foo: "bar")
-              expect(bar_object).to receive(:notify).with("Hello", foo: "bar")
+              expect(foo_object).to receive(:notify).with("Hello", { foo: "bar" })
+              expect(bar_object).to receive(:notify).with("Hello", { foo: "bar" })
               subject.notify("Hello", foo: "bar")
             end
 
@@ -358,16 +358,16 @@ module Notiffany
             let(:enabled) { true }
 
             it "sends notifications" do
-              expect(foo_object).to receive(:notify).with("Hello", foo: "bar")
-              expect(bar_object).to receive(:notify).with("Hello", foo: "bar")
+              expect(foo_object).to receive(:notify).with("Hello", { foo: "bar" })
+              expect(bar_object).to receive(:notify).with("Hello", { foo: "bar" })
               subject.notify("Hello", foo: "bar")
             end
 
             context "when a child process" do
               before { allow(env).to receive(:notify_pid).and_return($$ + 100) }
               it "sends notifications" do
-                expect(foo_object).to receive(:notify).with("Hello", foo: "bar")
-                expect(bar_object).to receive(:notify).with("Hello", foo: "bar")
+                expect(foo_object).to receive(:notify).with("Hello", { foo: "bar" })
+                expect(bar_object).to receive(:notify).with("Hello", { foo: "bar" })
                 subject.notify("Hello", foo: "bar")
               end
             end
